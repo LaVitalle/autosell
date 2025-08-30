@@ -1,0 +1,50 @@
+<!-- base.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/forms@0.3.4"></script>
+  </head>
+  <body class="bg-gray-900 text-white">
+    <!-- Sidebar -->
+    <div class="flex min-h-screen">
+      <div class="w-64 bg-gray-800 p-5">
+        <h2 class="text-2xl font-semibold">AutoSell</h2>
+        <ul class="mt-10 space-y-4">
+          <li>
+            <a
+              href="/"
+              class="text-lg hover:text-gray-400"
+              >Dashboard</a
+            >
+          </li>
+          <li>
+            <a
+              href="{% url 'get_all_products' %}"
+              class="text-lg hover:text-gray-400"
+              >Produtos</a
+            >
+          </li>
+          <li>
+            <a href="{% url 'categories' %}" class="text-lg hover:text-gray-400"
+              >Categorias</a
+            >
+          </li>
+        </ul>
+      </div>
+
+      <!-- Main Content -->
+      <div class="flex-1 p-8">
+        {% block content %}
+        <!-- O conteúdo da página será inserido aqui -->
+        {% endblock %}
+      </div>
+    </div>
+  </body>
+</html>
