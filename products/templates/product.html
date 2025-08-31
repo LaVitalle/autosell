@@ -4,20 +4,15 @@
   <!-- Header -->
   <div class="flex justify-between items-center mb-6">
     <h2 class="text-3xl font-bold">{{ product.name }}</h2>
-    <span class="text-xl font-semibold text-green-400"
-      >R$ {{ product.price }}</span
-    >
+    <span class="text-xl font-semibold text-green-400">R$ {{ product.price }}</span>
   </div>
 
   <!-- Main Content Grid -->
   <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8">
     <!-- Imagem -->
     <div class="flex justify-center items-start">
-      <img
-        src="{{ product.image_url }}"
-        alt="{{ product.name }}"
-        class="w-full max-w-md h-auto object-cover rounded-lg shadow-md"
-      />
+      <img src="{{ product.image_url }}" alt="{{ product.name }}"
+        class="w-full max-w-md h-auto object-cover rounded-lg shadow-md" />
     </div>
 
     <!-- Detalhes -->
@@ -34,31 +29,23 @@
       {% endif %}
 
       <!-- Infos adicionais -->
-      <div
-        class="mt-6 border-t border-gray-700 pt-4 text-sm text-gray-400 space-y-1"
-      >
+      <div class="mt-6 border-t border-gray-700 pt-4 text-sm text-gray-400 space-y-1">
         <p>Última atualização: {{ product.updated_at|date:"d/m/Y H:i" }}</p>
         <p>Cadastrado em: {{ product.created_at|date:"d/m/Y H:i" }}</p>
       </div>
 
       <!-- Ações -->
       <div class="mt-6 flex space-x-3">
-        <a
-          href=""
-          class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
-        >
+        <a href="{% url 'edit_product' product.id %}"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg">
           Editar
         </a>
-        <a
-          href=""
-          class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg"
-        >
+        <a href="{% url 'delete_by_id' product.id %}"
+          class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg">
           Excluir
         </a>
-        <a
-          href="{% url 'get_all_products' %}"
-          class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg"
-        >
+        <a href="{% url 'get_all_products' %}"
+          class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg">
           Voltar
         </a>
       </div>

@@ -9,6 +9,8 @@ from .models import Product
 #stock_quantity = models.IntegerField(default=0)
 
 class ProductForm(forms.ModelForm):
+    image_file = forms.FileField(required=False)
+
     class Meta:
         model = Product
-        fields = ['name', 'description', 'price', 'image_url', 'stock_active', 'stock_quantity']
+        fields = ['name', 'description', 'price', 'stock_active', 'stock_quantity']

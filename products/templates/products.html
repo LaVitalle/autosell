@@ -1,14 +1,14 @@
 <!-- produtos.html -->
 {% extends 'dashboard.html' %} {% block content %}
 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-  <div class="flex flex-row justify-between">
+  <div class="flex flex-row justify-between mb-4">
     <h3 class="text-xl font-semibold mb-4">Lista de Produtos</h3>
-    <a 
-    href="{% url 'create_product' %}"
-    class="bg-green-500 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg" 
+    <a
+      href="{% url 'create_product' %}"
+      class="h-8 w-16 bg-green-500 hover:bg-green-700 text-center text-white font-semibold py-2 px-4 rounded-lg"
     >
-    Criar
-  </a>
+      Criar
+    </a>
   </div>
   <table class="min-w-full table-auto text-sm text-gray-200">
     <thead>
@@ -20,9 +20,9 @@
     </thead>
     <tbody>
       {% for product in products %}
-      <tr>
+      <tr class="h-12 border-t border-gray-700">
         <td class="px-4 py-2">{{product.name}}</td>
-        <td class="px-4 py-2">{{product.price}}</td>
+        <td class="px-4 py-2">R$ {{ product.price|floatformat:2 }}</td>
         <td class="px-2 py-2 text-right">
           <a
             href="{% url 'get_by_id' product.id %}"
