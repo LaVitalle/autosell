@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-=bs=k@-41u=+^a36^b7+3+wj51^(-b$pw$#l(+=zdmvpjez&7o'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = ['autosell.lavitalle.tech', 'localhost', '127.0.0.1']
 
