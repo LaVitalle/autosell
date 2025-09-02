@@ -22,6 +22,8 @@ def upload_file_to_supabase(file_name: str, file) -> str:
     # Lê os bytes do arquivo
     file_content = file.read() if hasattr(file, "read") else file
 
+    file_name = clean_file_name(file_name)
+
     # Faz upload
     try:
         result = supabase.storage.from_(BUCKET_NAME).upload(file_name, file_content)
@@ -54,3 +56,7 @@ def delete_file_from_supabase(file_url: str) -> bool:
     except Exception as e:
         print(f"Exceção ao deletar arquivo: {e}")
         return False
+
+#Função para limpar o nome do arquivo de caracteres especiais e caracteres com acentuação
+def clean_file_name(file_name: str) -> str:
+    return file_name.replace(" ", "").replace("-", "").replace("/", "").replace(":", "").replace("(", "").replace(")", "").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u").replace("ç", "c").replace("Á","A").replace("É","E").replace("Í","I").replace("Ó","O").replace("Ú","U").replace("Ç","C")
