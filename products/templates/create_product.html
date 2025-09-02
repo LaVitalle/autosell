@@ -198,12 +198,12 @@
     const quantity = document.getElementById('id_stock_quantity');
 
     const toggle = () => {
-        quantity.disabled = !checkbox.checked;
+        quantity.readOnly = !checkbox.checked;
         if (!checkbox.checked) {
             quantity.value = 0;
-            quantity.classList.add('disabled:bg-neutral-100', 'dark:disabled:bg-neutral-600', 'disabled:text-neutral-500', 'dark:disabled:text-neutral-400', 'disabled:cursor-not-allowed');
+            quantity.classList.add('readOnly:bg-neutral-100', 'dark:readOnly:bg-neutral-600', 'readOnly:text-neutral-500', 'dark:readOnly:text-neutral-400', 'readOnly:cursor-not-allowed');
         } else {
-            quantity.classList.remove('disabled:bg-neutral-100', 'dark:disabled:bg-neutral-600', 'disabled:text-neutral-500', 'dark:disabled:text-neutral-400', 'disabled:cursor-not-allowed');
+            quantity.classList.remove('readOnly:bg-neutral-100', 'dark:readOnly:bg-neutral-600', 'readOnly:text-neutral-500', 'dark:readOnly:text-neutral-400', 'readOnly:cursor-not-allowed');
         }
     }
 
