@@ -29,6 +29,29 @@ DEBUG = True if PROD == 'False' else True
 
 ALLOWED_HOSTS = ['autosell.lavitalle.tech', 'dev.autosell.lavitalle.tech', 'localhost', '127.0.0.1']
 
+# CORS and CSRF Configuration
+CORS_ALLOWED_ORIGINS = [
+    "https://autosell.lavitalle.tech",
+    "https://dev.autosell.lavitalle.tech",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://autosell.lavitalle.tech",
+    "https://dev.autosell.lavitalle.tech",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+# Security Settings
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = False  # Set to True in production with HTTPS
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+
 
 # Application definition
 
@@ -39,12 +62,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'dashboard',
     'products',
     'categories',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
