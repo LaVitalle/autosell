@@ -32,6 +32,8 @@ def create_product(request):
                     product.image_url = img_url
             product.save()
             return redirect('get_all_products')
+        else:
+            return render(request, 'create_product.html', {'form': form})
     else:
         form = ProductForm()
         return render(request, 'create_product.html', {'form': form})
