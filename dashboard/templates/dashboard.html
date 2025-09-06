@@ -38,8 +38,6 @@
         
         .sidebar-transition {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 100vh;
-            height: 100vh;
         }
         
         .content-transition {
@@ -57,8 +55,7 @@
         #sidebar {
             display: flex;
             flex-direction: column;
-            height: 100%;
-            min-height: 100vh;
+            height: 100vh;
             position: sticky;
             top: 0;
         }
@@ -67,16 +64,63 @@
             flex: 1;
         }
         
-        .flex.h-full.min-h-screen {
+        .main-container {
             min-height: 100vh;
-            height: auto;
+            display: flex;
+        }
+
+        /* Bottom Navigation Styles */
+        .bottom-nav-item {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .bottom-nav-item.active {
+            color: #171717;
+        }
+        
+        .dark .bottom-nav-item.active {
+            color: #fafafa;
+        }
+        
+        .bottom-nav-item:not(.active):hover {
+            color: #525252;
+        }
+        
+        .dark .bottom-nav-item:not(.active):hover {
+            color: #d4d4d4;
+        }
+
+        /* More Menu Styles */
+        .more-menu {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .more-menu.show {
+            transform: translateY(0);
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 767px) {
+            .main-content {
+                padding-bottom: 4.5rem; /* Space for bottom nav */
+                width: 100%;
+            }
+            
+            #sidebar {
+                display: none !important;
+            }
+            
+            .mobile-content-padding {
+                padding-bottom: 1rem;
+            }
         }
     </style>
 </head>
 <body class="min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors duration-300">
-    <div class="flex min-h-screen">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar-transition w-64 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 shadow-sm">
+    <div class="main-container">
+        <!-- Sidebar (hidden on mobile) -->
+        <aside id="sidebar" class="sidebar-transition w-64 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 shadow-sm hidden md:block">
             <div class="flex-1 p-6">
                 <!-- Logo -->
                 <div class="flex items-center space-x-3 mb-8">
@@ -141,54 +185,74 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="content-transition flex-1 bg-neutral-50 dark:bg-neutral-900">
-            <div class="p-8">
+        <main class="content-transition flex-1 bg-neutral-50 dark:bg-neutral-900 main-content min-h-screen">
+            <!-- Mobile Header -->
+            <div class="md:hidden bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-neutral-900 dark:bg-white rounded-lg flex items-center justify-center">
+                            <span class="text-white dark:text-neutral-900 font-bold text-lg">A</span>
+                        </div>
+                        <h1 class="text-xl font-semibold text-neutral-900 dark:text-white">AutoSell</h1>
+                    </div>
+                    <!-- Dark Mode Toggle for Mobile -->
+                    <button id="darkModeToggleMobile" class="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors duration-200">
+                        <div class="relative">
+                            <div id="toggleSwitchMobile" class="w-8 h-5 bg-neutral-300 dark:bg-neutral-600 rounded-full transition-colors duration-200">
+                                <div id="toggleCircleMobile" class="w-4 h-4 bg-white rounded-full shadow-sm transform translate-x-0.5 translate-y-0.5 transition-transform duration-200"></div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-4 md:p-8">
                 {% block content %}
                 <!-- Conteúdo da página será inserido aqui -->
-                <div class="max-w-4xl mx-auto">
+                <div class="max-w-4xl mx-auto mobile-content-padding">
                     <div class="mb-8">
                         <h2 class="text-3xl font-bold text-neutral-900 dark:text-white mb-2">Dashboard</h2>
                         <p class="text-neutral-600 dark:text-neutral-400">Bem-vindo ao painel de controle do AutoSell</p>
                     </div>
                     
                     <!-- Stats Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div class="bg-white dark:bg-neutral-800 p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+                        <div class="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Total de Produtos</p>
-                                    <p class="text-2xl font-bold text-neutral-900 dark:text-white">0</p>
+                                    <p class="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white">0</p>
                                 </div>
-                                <div class="w-12 h-12 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
-                                    <svg class="w-6 h-6 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-10 h-10 md:w-12 md:h-12 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 md:w-6 md:h-6 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                     </svg>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="bg-white dark:bg-neutral-800 p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                        <div class="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Categorias</p>
-                                    <p class="text-2xl font-bold text-neutral-900 dark:text-white">0</p>
+                                    <p class="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white">0</p>
                                 </div>
-                                <div class="w-12 h-12 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
-                                    <svg class="w-6 h-6 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-10 h-10 md:w-12 md:h-12 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 md:w-6 md:h-6 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                                     </svg>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="bg-white dark:bg-neutral-800 p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                        <div class="bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Vendas</p>
-                                    <p class="text-2xl font-bold text-neutral-900 dark:text-white">0</p>
+                                    <p class="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white">0</p>
                                 </div>
-                                <div class="w-12 h-12 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
-                                    <svg class="w-6 h-6 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-10 h-10 md:w-12 md:h-12 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 md:w-6 md:h-6 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                                     </svg>
                                 </div>
@@ -201,53 +265,257 @@
         </main>
     </div>
 
+    <!-- Bottom Navigation (Mobile Only) -->
+    <nav id="bottomNav" class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 px-2 py-2 z-50 safe-area-inset-bottom">
+        <div class="flex items-center justify-around">
+            <!-- Dashboard -->
+            <a href="/" class="bottom-nav-item active flex flex-col items-center py-1 px-2 text-neutral-400 dark:text-neutral-500">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"></path>
+                </svg>
+                <span class="text-xs font-medium">Dashboard</span>
+            </a>
+
+            <!-- Produtos -->
+            <a href="{% url 'get_all_products' %}" class="bottom-nav-item flex flex-col items-center py-1 px-2 text-neutral-400 dark:text-neutral-500">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <span class="text-xs font-medium">Produtos</span>
+            </a>
+
+            <!-- Categorias -->
+            <a href="{% url 'get_all_categories' %}" class="bottom-nav-item flex flex-col items-center py-1 px-2 text-neutral-400 dark:text-neutral-500">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                </svg>
+                <span class="text-xs font-medium">Categorias</span>
+            </a>
+
+            <!-- Mais -->
+            <button id="moreButton" class="bottom-nav-item flex flex-col items-center py-1 px-2 text-neutral-400 dark:text-neutral-500">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                </svg>
+                <span class="text-xs font-medium">Mais</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- More Menu Overlay -->
+    <div id="moreMenuOverlay" class="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+    <!-- More Menu -->
+    <div id="moreMenu" class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 rounded-t-xl border-t border-neutral-200 dark:border-neutral-700 z-50 more-menu">
+        <div class="p-6">
+            <!-- Handle -->
+            <div class="w-12 h-1 bg-neutral-300 dark:bg-neutral-600 rounded-full mx-auto mb-6"></div>
+            
+            <h3 class="text-lg font-semibold text-neutral-900 dark:text-white mb-4">Menu</h3>
+            
+            <!-- Menu Items -->
+            <div class="space-y-3">
+                <a href="/" class="flex items-center space-x-3 p-3 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"></path>
+                    </svg>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                
+                <a href="{% url 'get_all_products' %}" class="flex items-center space-x-3 p-3 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    <span class="font-medium">Produtos</span>
+                </a>
+                
+                <a href="{% url 'get_all_categories' %}" class="flex items-center space-x-3 p-3 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                    <span class="font-medium">Categorias</span>
+                </a>
+
+                <!-- User Section -->
+                <div class="border-t border-neutral-200 dark:border-neutral-700 pt-4 mt-4">
+                    <div class="flex items-center space-x-3 p-3">
+                        <div class="w-8 h-8 bg-neutral-200 dark:bg-neutral-600 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-neutral-900 dark:text-white">Usuário</p>
+                            <p class="text-xs text-neutral-500 dark:text-neutral-400">admin@autosell.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Dark Mode Toggle Functionality
         const darkModeToggle = document.getElementById('darkModeToggle');
+        const darkModeToggleMobile = document.getElementById('darkModeToggleMobile');
         const toggleSwitch = document.getElementById('toggleSwitch');
         const toggleCircle = document.getElementById('toggleCircle');
+        const toggleSwitchMobile = document.getElementById('toggleSwitchMobile');
+        const toggleCircleMobile = document.getElementById('toggleCircleMobile');
         const html = document.documentElement;
         
         // Check for saved theme preference or default to light mode
         const currentTheme = localStorage.getItem('theme') || 'light';
-        if (currentTheme === 'dark') {
-            html.classList.add('dark');
-            toggleCircle.classList.add('translate-x-4');
-            toggleSwitch.classList.add('bg-neutral-600');
+        
+        function updateThemeElements(isDark) {
+            if (isDark) {
+                html.classList.add('dark');
+                if (toggleCircle) toggleCircle.classList.add('translate-x-4');
+                if (toggleSwitch) toggleSwitch.classList.add('bg-neutral-600');
+                if (toggleCircleMobile) toggleCircleMobile.classList.add('translate-x-3');
+                if (toggleSwitchMobile) toggleSwitchMobile.classList.add('bg-neutral-600');
+            } else {
+                html.classList.remove('dark');
+                if (toggleCircle) toggleCircle.classList.remove('translate-x-4');
+                if (toggleSwitch) toggleSwitch.classList.remove('bg-neutral-600');
+                if (toggleCircleMobile) toggleCircleMobile.classList.remove('translate-x-3');
+                if (toggleSwitchMobile) toggleSwitchMobile.classList.remove('bg-neutral-600');
+            }
         }
         
-        darkModeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
+        // Initialize theme
+        updateThemeElements(currentTheme === 'dark');
+        
+        function toggleDarkMode() {
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+            updateThemeElements(!isDark);
+        }
+        
+        // Event listeners for dark mode toggles
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+        }
+        if (darkModeToggleMobile) {
+            darkModeToggleMobile.addEventListener('click', toggleDarkMode);
+        }
+        
+        // Bottom Navigation Active State
+        function setActiveNavItem() {
+            const currentPath = window.location.pathname;
+            const navItems = document.querySelectorAll('.bottom-nav-item');
             
-            if (html.classList.contains('dark')) {
-                localStorage.setItem('theme', 'dark');
-                toggleCircle.classList.add('translate-x-4');
-                toggleSwitch.classList.add('bg-neutral-600');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                
+                if (item.tagName === 'A') {
+                    const href = item.getAttribute('href');
+                    // Check for exact match or if current path contains the href
+                    if (href === currentPath || 
+                        (href === '/' && currentPath === '/') ||
+                        (href !== '/' && currentPath.includes(href.split('/').filter(p => p)[0]))) {
+                        item.classList.add('active');
+                    }
+                }
+            });
+        } 
+        
+        // More Menu Functionality
+        function showMoreMenu() {
+            const moreMenu = document.getElementById('moreMenu');
+            const moreMenuOverlay = document.getElementById('moreMenuOverlay');
+            
+            moreMenu.classList.add('show');
+            moreMenuOverlay.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function hideMoreMenu() {
+            const moreMenu = document.getElementById('moreMenu');
+            const moreMenuOverlay = document.getElementById('moreMenuOverlay');
+            
+            moreMenu.classList.remove('show');
+            moreMenuOverlay.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        
+        function toggleMoreMenu() {
+            const moreMenu = document.getElementById('moreMenu');
+            
+            if (moreMenu.classList.contains('show')) {
+                hideMoreMenu();
             } else {
-                localStorage.setItem('theme', 'light');
-                toggleCircle.classList.remove('translate-x-4');
-                toggleSwitch.classList.remove('bg-neutral-600');
+                showMoreMenu();
+            }
+        }
+        
+        // Event listener for more button
+        const moreButton = document.getElementById('moreButton');
+        if (moreButton) {
+            moreButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMoreMenu();
+            });
+        }
+        
+        // Close more menu when clicking on overlay
+        const moreMenuOverlay = document.getElementById('moreMenuOverlay');
+        if (moreMenuOverlay) {
+            moreMenuOverlay.addEventListener('click', hideMoreMenu);
+        }
+        
+        // Prevent menu from closing when clicking inside it
+        const moreMenu = document.getElementById('moreMenu');
+        if (moreMenu) {
+            moreMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+        
+        // Close menu when clicking outside (additional safety)
+        document.addEventListener('click', (e) => {
+            const moreMenu = document.getElementById('moreMenu');
+            const moreButton = document.getElementById('moreButton');
+            
+            if (moreMenu && moreMenu.classList.contains('show')) {
+                if (!moreMenu.contains(e.target) && !moreButton.contains(e.target)) {
+                    hideMoreMenu();
+                }
             }
         });
         
-        // Responsive sidebar toggle (for mobile)
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('-translate-x-full');
+        // Initialize active nav item
+        document.addEventListener('DOMContentLoaded', setActiveNavItem);
+        
+        // Handle touch gestures for more menu (swipe down to close)
+        let startY = 0;
+        
+        if (moreMenu) {
+            moreMenu.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+            });
+            
+            moreMenu.addEventListener('touchmove', (e) => {
+                const currentY = e.touches[0].clientY;
+                const diff = currentY - startY;
+                
+                if (diff > 50) { // Swipe down threshold
+                    hideMoreMenu();
+                }
+            });
         }
         
-        // Add mobile menu button if needed
-        if (window.innerWidth < 768) {
-            const mobileMenuBtn = document.createElement('button');
-            mobileMenuBtn.innerHTML = `
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-            `;
-            mobileMenuBtn.className = 'md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700';
-            mobileMenuBtn.onclick = toggleSidebar;
-            document.body.appendChild(mobileMenuBtn);
-        }
+        // Close menu when pressing escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const moreMenu = document.getElementById('moreMenu');
+                if (moreMenu && moreMenu.classList.contains('show')) {
+                    hideMoreMenu();
+                }
+            }
+        });
     </script>
 </body>
 </html>
