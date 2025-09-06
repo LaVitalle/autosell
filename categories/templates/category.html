@@ -1,0 +1,624 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<!-- Layout Zero Scroll - Altura Fixa 100vh -->
+<div class="max-w-7xl mx-auto h-full flex flex-col mobile-content-padding">
+  
+  <!-- Header Compacto com Busca Integrada -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+    <!-- Título com Ícone -->
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+        <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white">{{ category.name }}</h1>
+        <p class="text-xs md:text-sm text-neutral-600 dark:text-neutral-400">{{ category.description|default:"Produtos nesta categoria" }}</p>
+      </div>
+    </div>
+    
+    <!-- Área de Busca e Ações -->
+    <div class="flex items-center gap-3 w-full sm:w-auto">
+      <!-- Campo de Busca -->
+      <div class="relative flex-1 sm:flex-none">
+        <input 
+          type="text" 
+          id="searchInput"
+          placeholder="Buscar produtos na categoria..."
+          class="w-full sm:w-64 px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 transition-colors duration-200"
+        >
+        <svg class="absolute right-3 top-2.5 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+      
+      <!-- Botões de Ação da Categoria -->
+      <div class="flex items-center gap-2">
+        <!-- Botão Editar -->
+        <a href="{% url 'edit_category' category.id %}" 
+           class="inline-flex items-center justify-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 text-xs">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+          Editar
+        </a>
+        
+        <!-- Botão Excluir -->
+        <a href="{% url 'delete_category' category.id %}"
+                class="inline-flex items-center justify-center px-3 py-1.5 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 font-medium rounded bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200 text-xs">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+          Excluir
+        </a>
+      </div>
+      
+      <!-- Botão Voltar -->
+      <a href="{% url 'get_all_categories' %}" class="inline-flex items-center justify-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 text-xs">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Voltar
+      </a>
+    </div>
+  </div>
+
+  <!-- Informações da Categoria -->
+  <div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm p-4 mb-4">
+    <div class="flex flex-col sm:flex-row gap-4">
+      <!-- Imagem da Categoria -->
+      {% if category.image_url %}
+        <div class="flex-shrink-0">
+          <img src="{{ category.image_url }}" alt="{{ category.name }}" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-neutral-200 dark:border-neutral-600">
+        </div>
+      {% endif %}
+      
+      <!-- Informações -->
+      <div class="flex-1">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div class="flex-1">
+            <h2 class="text-lg font-semibold text-neutral-900 dark:text-white mb-2">{{ category.name }}</h2>
+            {% if category.description %}
+              <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-3">{{ category.description }}</p>
+            {% else %}
+              <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-3 italic">Nenhuma descrição disponível para esta categoria</p>
+            {% endif %}
+            
+            <!-- Metadados -->
+            <div class="flex flex-wrap gap-4 text-xs text-neutral-500 dark:text-neutral-400">
+              <div class="flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <span>
+                  {% if total_products == 0 %}
+                    Nenhum produto
+                  {% elif total_products == 1 %}
+                    1 produto
+                  {% else %}
+                    {{ total_products }} produtos
+                  {% endif %}
+                </span>
+              </div>
+              {% if category.created_at %}
+                <div class="flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 4h6m-6 0v8a2 2 0 002 2h2a2 2 0 002-2v-8m-6 0H6a2 2 0 00-2 2v6a2 2 0 002 2h2"></path>
+                  </svg>
+                  <span>Criada em {{ category.created_at|date:"d/m/Y" }}</span>
+                </div>
+              {% endif %}
+              {% if category.updated_at and category.updated_at != category.created_at %}
+                <div class="flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  <span>Atualizada em {{ category.updated_at|date:"d/m/Y" }}</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container Principal de Conteúdo -->
+  <div class="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden flex-1 flex flex-col">
+    
+    <!-- Header da Tabela -->
+    <div class="px-4 md:px-6 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <h3 class="text-sm font-semibold text-neutral-900 dark:text-white">Produtos da Categoria</h3>
+        <span id="resultsInfo" class="text-xs text-neutral-600 dark:text-neutral-400">
+          Mostrando 1-{{ products|slice:":5"|length }} de {{ total_products }} produtos
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="itemsPerPage" class="text-xs text-neutral-600 dark:text-neutral-400">Por página:</label>
+        <select id="itemsPerPage" class="text-sm border border-neutral-300 dark:border-neutral-600 rounded px-2 py-1 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="25">25</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Área de Conteúdo Principal -->
+    <div class="flex-1 overflow-hidden">
+      
+      <!-- Versão Desktop - Tabela -->
+      <div class="hidden md:block h-full overflow-y-auto custom-scrollbar">
+        <table class="w-full">
+          <thead class="bg-neutral-50 dark:bg-neutral-700 sticky top-0">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">Imagem</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">Produto</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">Preço</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-700">
+            {% for product in products %}
+            <tr class="product-row hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150" 
+                data-name="{{ product.name|lower }}" 
+                data-price="{{ product.price }}" 
+                data-id="{{ product.id }}">
+              <!-- Imagem -->
+              <td class="px-4 py-4 whitespace-nowrap">
+                {% if product.image_url %}
+                  <img src="{{ product.image_url }}" alt="{{ product.name }}" class="w-12 h-12 object-cover rounded-lg border border-neutral-200 dark:border-neutral-600">
+                {% else %}
+                  <div class="w-12 h-12 bg-neutral-100 dark:bg-neutral-700 rounded-lg border border-neutral-200 dark:border-neutral-600 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                  </div>
+                {% endif %}
+              </td>
+              
+              <!-- Nome do Produto -->
+              <td class="px-4 py-4">
+                <div class="text-sm font-medium text-neutral-900 dark:text-white">{{ product.name }}</div>
+                {% if product.description %}
+                  <div class="text-xs text-neutral-500 dark:text-neutral-400 truncate max-w-xs">{{ product.description }}</div>
+                {% endif %}
+              </td>
+              
+              <!-- Preço -->
+              <td class="px-4 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-neutral-900 dark:text-white">R$ {{ product.price }}</div>
+              </td>
+              
+              <!-- Ações -->
+              <td class="px-4 py-4 whitespace-nowrap text-right">
+                <div class="flex items-center justify-end gap-2">
+                  <!-- Ver Produto -->
+                  <a href="/products/{{ product.id }}" 
+                     class="inline-flex items-center px-2 py-1 text-xs font-medium border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 rounded hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    Ver
+                  </a>
+                  
+                  <!-- Remover da Categoria -->
+                  <button onclick="removeFromCategory({{ product.id }}, '{{ product.name }}')"
+                          class="inline-flex items-center px-2 py-1 text-xs font-medium border border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Remover
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="px-4 py-12 text-center">
+                <div class="flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400">
+                  <svg class="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                  </svg>
+                  <p class="text-sm font-medium">Nenhum produto nesta categoria</p>
+                  <p class="text-xs mt-1">Adicione produtos para começar</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Versão Mobile - Cards -->
+      <div class="block md:hidden h-full overflow-y-auto custom-scrollbar">
+        <div class="p-4 space-y-3">
+          {% for product in products %}
+          <div class="product-card bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200" 
+               data-name="{{ product.name|lower }}" 
+               data-price="{{ product.price }}" 
+               data-id="{{ product.id }}">
+            
+            <div class="flex gap-3">
+              <!-- Imagem -->
+              <div class="flex-shrink-0">
+                {% if product.image_url %}
+                  <img src="{{ product.image_url }}" alt="{{ product.name }}" class="w-16 h-16 object-cover rounded-lg border border-neutral-200 dark:border-neutral-600">
+                {% else %}
+                  <div class="w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-lg border border-neutral-200 dark:border-neutral-600 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                  </div>
+                {% endif %}
+              </div>
+              
+              <!-- Informações -->
+              <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-sm font-medium text-neutral-900 dark:text-white truncate">{{ product.name }}</h3>
+                  {% if product.description %}
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1 line-clamp-2">{{ product.description }}</p>
+                  {% endif %}
+                </div>
+                
+                <!-- Preço e Ações -->
+                <div class="flex items-center justify-between mt-3">
+                  <div class="text-sm font-bold text-neutral-900 dark:text-white">R$ {{ product.price }}</div>
+                  
+                  <div class="flex items-center gap-2">
+                    <!-- Ver Produto -->
+                    <a href="/products/{{ product.id }}" 
+                       class="inline-flex items-center px-2 py-1 text-xs font-medium border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 rounded hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                      </svg>
+                      Ver
+                    </a>
+                    
+                    <!-- Remover da Categoria -->
+                    <button onclick="removeFromCategory({{ product.id }}, '{{ product.name }}')"
+                            class="inline-flex items-center px-2 py-1 text-xs font-medium border border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="flex flex-col items-center justify-center py-12 text-neutral-500 dark:text-neutral-400">
+            <svg class="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+            </svg>
+            <p class="text-sm font-medium">Nenhum produto nesta categoria</p>
+            <p class="text-xs mt-1">Adicione produtos para começar</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer de Paginação -->
+    <div class="px-4 md:px-6 py-3 border-t border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+      
+      <!-- Informações de Resultados -->
+      <div class="text-xs text-neutral-600 dark:text-neutral-400 order-2 sm:order-1">
+        <span id="resultsInfo">Mostrando 1-5 de {{ total_products }} produtos</span>
+      </div>
+
+      <!-- Controles de Navegação -->
+      <div class="flex items-center gap-2 order-1 sm:order-2">
+        <button 
+          id="prevPage"
+          class="inline-flex items-center px-3 py-1.5 text-sm font-medium border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 rounded hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled>
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Anterior
+        </button>
+        
+        <div id="pageNumbers" class="flex items-center gap-1">
+          <!-- Números de página serão inseridos aqui via JavaScript -->
+        </div>
+        
+        <button 
+          id="nextPage"
+          class="inline-flex items-center px-3 py-1.5 text-sm font-medium border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 rounded hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+          Próximo
+          <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estilos CSS Customizados -->
+<style>
+/* Scrollbar Personalizada */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: theme('colors.neutral.100');
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: theme('colors.neutral.300');
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.neutral.400');
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: theme('colors.neutral.800');
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: theme('colors.neutral.600');
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.neutral.500');
+}
+
+/* Padding Responsivo */
+.mobile-content-padding {
+  padding: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-content-padding {
+    padding: 1.5rem;
+  }
+}
+
+/* Truncate text para descrições */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>
+
+<!-- JavaScript para Funcionalidades -->
+<script>
+// Função para remover produto da categoria
+function removeFromCategory(productId, productName) {
+  if (confirm(`Tem certeza que deseja remover "${productName}" desta categoria?`)) {
+    // Aqui você implementaria a lógica de remoção via AJAX
+    // Por enquanto, apenas log
+    console.log(`Remover produto ${productId} da categoria {{ category.id }}`);
+    
+    // Exemplo de implementação:
+    // fetch(`/categories/{{ category.id }}/remove-product/${productId}/`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+    //     'Content-Type': 'application/json',
+    //   }
+    // })
+    // .then(response => response.json())
+    // .then(data => {
+    //   if (data.success) {
+    //     location.reload();
+    //   }
+    // });
+  }
+}
+
+// Função para confirmar exclusão da categoria
+function confirmDeleteCategory(categoryId, categoryName) {
+  const message = `⚠️ ATENÇÃO: Você está prestes a excluir a categoria "${categoryName}".\n\n` +
+                  `Esta ação é IRREVERSÍVEL e irá:\n` +
+                  `• Excluir permanentemente a categoria\n` +
+                  `• Remover a associação dos produtos com esta categoria\n` +
+                  `• Os produtos NÃO serão excluídos, apenas desassociados\n\n` +
+                  `Tem certeza que deseja continuar?`;
+                  
+  if (confirm(message)) {
+    // Por enquanto, apenas log - aqui seria implementada a lógica de exclusão
+    console.log(`Excluir categoria ${categoryId}: ${categoryName}`);
+    
+    // Exemplo de implementação futura:
+    // const form = document.createElement('form');
+    // form.method = 'POST';
+    // form.action = `/categories/${categoryId}/delete/`;
+    // 
+    // const csrfInput = document.createElement('input');
+    // csrfInput.type = 'hidden';
+    // csrfInput.name = 'csrfmiddlewaretoken';
+    // csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    // form.appendChild(csrfInput);
+    // 
+    // document.body.appendChild(form);
+    // form.submit();
+    
+    alert('Funcionalidade de exclusão será implementada em breve!');
+  }
+}
+
+// Sistema de Paginação
+class CategoryPaginationManager {
+  constructor() {
+    this.currentPage = 1;
+    this.itemsPerPage = 5;
+    this.filteredItems = [];
+    this.allItems = [];
+    
+    this.initElements();
+    this.initEventListeners();
+    this.initialize();
+  }
+  
+  initElements() {
+    this.productRows = document.querySelectorAll('.product-row');
+    this.productCards = document.querySelectorAll('.product-card');
+    this.searchInput = document.getElementById('searchInput');
+    this.resultsInfo = document.getElementById('resultsInfo');
+    this.itemsPerPageSelect = document.getElementById('itemsPerPage');
+    this.prevButton = document.getElementById('prevPage');
+    this.nextButton = document.getElementById('nextPage');
+    this.pageNumbers = document.getElementById('pageNumbers');
+  }
+  
+  initEventListeners() {
+    if (this.searchInput) {
+      this.searchInput.addEventListener('input', (e) => {
+        this.filterProducts(e.target.value.toLowerCase());
+        this.currentPage = 1;
+        this.render();
+      });
+    }
+    
+    if (this.itemsPerPageSelect) {
+      this.itemsPerPageSelect.addEventListener('change', (e) => {
+        this.itemsPerPage = parseInt(e.target.value);
+        this.currentPage = 1;
+        this.render();
+      });
+    }
+    
+    if (this.prevButton) {
+      this.prevButton.addEventListener('click', () => {
+        if (this.currentPage > 1) {
+          this.currentPage--;
+          this.render();
+        }
+      });
+    }
+    
+    if (this.nextButton) {
+      this.nextButton.addEventListener('click', () => {
+        const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+        if (this.currentPage < totalPages) {
+          this.currentPage++;
+          this.render();
+        }
+      });
+    }
+  }
+  
+  initialize() {
+    this.allItems = Array.from(this.productRows.length > 0 ? this.productRows : this.productCards);
+    this.filteredItems = [...this.allItems];
+    this.render();
+  }
+  
+  filterProducts(searchTerm) {
+    if (searchTerm === '') {
+      this.filteredItems = [...this.allItems];
+    } else {
+      this.filteredItems = this.allItems.filter(item => {
+        const name = item.dataset.name || '';
+        const price = item.dataset.price || '';
+        const id = item.dataset.id || '';
+        
+        return name.includes(searchTerm) || 
+               price.includes(searchTerm) || 
+               id.includes(searchTerm);
+      });
+    }
+  }
+  
+  render() {
+    this.renderItems();
+    this.renderPagination();
+    this.updateResultsInfo();
+  }
+  
+  renderItems() {
+    const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    
+    // Ocultar todos os itens
+    this.allItems.forEach(item => item.style.display = 'none');
+    
+    // Mostrar apenas itens filtrados e paginados
+    this.filteredItems.slice(startIndex, endIndex).forEach(item => {
+      item.style.display = '';
+    });
+    
+    // Atualizar controles de navegação
+    if (this.prevButton) {
+      this.prevButton.disabled = this.currentPage === 1;
+    }
+    
+    if (this.nextButton) {
+      this.nextButton.disabled = this.currentPage === totalPages || totalPages === 0;
+    }
+  }
+  
+  renderPagination() {
+    if (!this.pageNumbers) return;
+    
+    const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+    this.pageNumbers.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    // Mostrar máximo 5 números de página
+    let startPage = Math.max(1, this.currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const pageButton = document.createElement('button');
+      pageButton.textContent = i;
+      pageButton.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${
+        i === this.currentPage 
+          ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' 
+          : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'
+      }`;
+      
+      pageButton.addEventListener('click', () => {
+        this.currentPage = i;
+        this.render();
+      });
+      
+      this.pageNumbers.appendChild(pageButton);
+    }
+  }
+  
+  updateResultsInfo() {
+    if (!this.resultsInfo) return;
+    
+    const totalItems = this.filteredItems.length;
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
+    const endIndex = Math.min(this.currentPage * this.itemsPerPage, totalItems);
+    
+    if (totalItems === 0) {
+      this.resultsInfo.textContent = 'Nenhum produto encontrado';
+    } else {
+      this.resultsInfo.textContent = `Mostrando ${startIndex}-${endIndex} de ${totalItems} produtos`;
+    }
+  }
+}
+
+// Inicializar quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+  // Verificar se existem produtos para inicializar paginação
+  const hasProducts = document.querySelectorAll('.product-row, .product-card').length > 0;
+  if (hasProducts) {
+    new CategoryPaginationManager();
+  }
+});
+</script>
+{% endblock %}
