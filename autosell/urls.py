@@ -24,4 +24,5 @@ urlpatterns = [
     path('products/', include('products.urls')),
     path('categories/', include('categories.urls')),
     path('contacts/', include('contacts.urls')),
+    path('messages/', include('wppmessages.urls')),
 ]

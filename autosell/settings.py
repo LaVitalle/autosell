@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'products',
     'categories',
     'contacts',
+    'wppmessages',
 ]
 
 MIDDLEWARE = [
@@ -126,6 +127,11 @@ else:
 SUPABASE_URL = config("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY")
 
+# Evolution API
+EVOLUTION_TOKEN = config("EVOLUTION_TOKEN")
+EVOLUTION_URL = config("EVOLUTION_URL")
+EVOLUTION_INSTANCE_ID = config("EVOLUTION_INSTANCE_ID")
+EVOLUTION_INSTANCE_TOKEN = config("EVOLUTION_INSTANCE_TOKEN")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
