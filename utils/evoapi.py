@@ -7,22 +7,6 @@ EVOLUTION_URL = settings.EVOLUTION_URL
 EVOLUTION_INSTANCE_ID = settings.EVOLUTION_INSTANCE_ID
 EVOLUTION_INSTANCE_TOKEN = settings.EVOLUTION_INSTANCE_TOKEN
 
-# Cliente global (inicializado apenas quando necessário)
-_evolution_client = None
-_evolution_state = None
-
-def get_client():
-    """Obtém o cliente Evolution API, inicializando se necessário"""
-    global _evolution_client, _evolution_state
-    if _evolution_client is None:
-        _evolution_client = EvolutionClient(EVOLUTION_URL, EVOLUTION_TOKEN)
-        try:
-            _evolution_state = _evolution_client.instance_operations.connect(EVOLUTION_INSTANCE_ID, EVOLUTION_INSTANCE_TOKEN)
-        except Exception as e:
-            print(f"Aviso: Não foi possível conectar à instância: {e}")
-            _evolution_state = None
-    return _evolution_client
-
 
 def send_text_message(number: str, text: str):
     """Envia uma mensagem de texto via Evolution API"""
