@@ -62,7 +62,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'evolutionapi',
     'corsheaders',
     'dashboard',
     'products',
