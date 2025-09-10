@@ -1,6 +1,7 @@
 from django.conf import settings
 from evolutionapi.client import EvolutionClient
-from evolutionapi.models.message import MediaMessage, TextMessage
+from evolutionapi.models.message import TextMessage
+from requests import post
 
 # Configurações da Evolution API
 EVOLUTION_TOKEN = settings.EVOLUTION_TOKEN
@@ -25,20 +26,44 @@ def get_client():
     return _evolution_client
 
 
-def send_text_message(message: TextMessage):
+def send_text_message(number: str, text: str):
     """Envia uma mensagem de texto via Evolution API"""
     try:
-        _evolution_client = get_client()
-        return _evolution_client.messages.send_text(EVOLUTION_INSTANCE_ID, message, EVOLUTION_INSTANCE_TOKEN)      
+        response = post(
+            f"{EVOLUTION_URL}/message/sendText/{EVOLUTION_INSTANCE_ID}",
+            headers={
+                "Content-Type": "application/json",
+                "apikey": f"{EVOLUTION_INSTANCE_TOKEN}"
+            },
+            json={
+                "number": number,
+                "text": text
+            }
+        )
+        return response.json()
     except Exception as e:
         print(f"Erro ao enviar mensagem de texto: {e}")
         return None
 
-def send_media_message(message: MediaMessage):
+def send_media_message(number: str, mediatype: str, mimetype: str, caption: str, media: str, fileName: str):
     """Envia uma mensagem de mídia via Evolution API"""
     try:
-        _evolution_client = get_client()
-        return _evolution_client.messages.send_media(EVOLUTION_INSTANCE_ID, message, EVOLUTION_INSTANCE_TOKEN)
+        response = post(
+            f"{EVOLUTION_URL}/message/sendMedia/{EVOLUTION_INSTANCE_ID}",
+            headers={
+                "Content-Type": "application/json",
+                "apikey": f"{EVOLUTION_INSTANCE_TOKEN}"
+            },
+            json={
+                "number": number,
+                "mediatype": mediatype,
+                "mimetype": mimetype,
+                "caption": caption,
+                "media": media,
+                "fileName": fileName
+            }
+        )
+        return response.json()
     except Exception as e:
         print(f"Erro ao enviar mensagem de mídia: {e}")
         return None
