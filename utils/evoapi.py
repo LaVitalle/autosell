@@ -1,6 +1,4 @@
 from django.conf import settings
-from evolutionapi.client import EvolutionClient
-from evolutionapi.models.message import TextMessage
 from requests import post
 
 # Configurações da Evolution API
