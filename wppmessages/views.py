@@ -6,6 +6,7 @@ from .models import Message
 from .forms import MessageForm
 from utils.evoapi import send_media_message, send_text_message
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
 #message = TextMessage(
 #    number="5511999999999",
@@ -116,12 +117,6 @@ def messages_manager(request):
         context['form'] = MessageForm()
     return render(request, 'messages_manager.html', context)
 
-def hook(request):
-    send_text_message('5545998231771', 'Fungou!')
-    send_text_message('5545998231771', str(request.POST))
-    return HttpResponse('OK')
-
-
 ### Auxiliar functions
 def get_stats():
     """Get statistics for the dashboard cards"""
@@ -131,3 +126,9 @@ def get_stats():
         'total_products': Product.objects.count(),
         'total_categories': Category.objects.count()
     }
+
+@csrf_exempt
+def hook(request):
+    send_text_message('5545998231771', 'Fungou!')
+    send_text_message('5545998231771', str(request.POST))
+    return HttpResponse('OK')
