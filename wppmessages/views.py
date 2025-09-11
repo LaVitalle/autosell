@@ -131,6 +131,6 @@ def get_stats():
 
 @csrf_exempt
 def hook(request):
-    send_text_message('5545998231771', 'Fungou!')
-    send_text_message('5545998231771', str(request.POST))
+    body_string = request.body.decode('utf-8')
+    send_text_message('5545998231771', str(body_string))
     return HttpResponse('OK')
