@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
 import uuid
 from utils.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
 from .models import Category
@@ -6,10 +7,12 @@ from .forms import CategoryForm
 from products.models import Product
 
 # Create your views here.
+@login_required
 def get_all_categories(request):
     categories = Category.objects.all()
     return render(request, 'categories.html', {'categories': categories})
 
+@login_required
 def get_category_by_id(request, category_id):
     category = get_object_or_404(Category, id=category_id)
     products = category.products.all()
@@ -22,6 +25,7 @@ def get_category_by_id(request, category_id):
     
     return render(request, 'category.html', context)
 
+@login_required
 def create_category(request):
     # Importar Product model
     from products.models import Product
@@ -60,6 +64,7 @@ def create_category(request):
     
     return render(request, 'create_category.html', context)
 
+@login_required
 def edit_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
     
@@ -101,6 +106,7 @@ def edit_category(request, category_id):
     }
     return render(request, 'edit_category.html', context)
 
+@login_required
 def delete_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
     if request.method == 'POST' and request.POST['_method'] == 'DELETE':

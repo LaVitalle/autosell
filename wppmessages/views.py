@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 from contacts.models import Contact
 from products.models import Product
 from categories.models import Category
@@ -15,6 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 #)
 
 # Create your views here.
+@login_required
 def messages_manager(request):
     context = {
         'form': None,
