@@ -117,9 +117,12 @@ def messages_manager(request):
     return render(request, 'messages_manager.html', context)
 
 def hook(request):
-    print(request.POST)
+    send_text_message('5545998231771', 'Fungou!')
+    send_text_message('5545998231771', str(request.POST))
     return HttpResponse('OK')
 
+
+### Auxiliar functions
 def get_stats():
     """Get statistics for the dashboard cards"""
     return {
