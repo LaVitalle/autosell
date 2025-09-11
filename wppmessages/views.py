@@ -5,6 +5,7 @@ from categories.models import Category
 from .models import Message
 from .forms import MessageForm
 from utils.evoapi import send_media_message, send_text_message
+from django.http import HttpResponse
 
 #message = TextMessage(
 #    number="5511999999999",
@@ -114,6 +115,10 @@ def messages_manager(request):
     else:
         context['form'] = MessageForm()
     return render(request, 'messages_manager.html', context)
+
+def hook(request):
+    print(request.POST)
+    return HttpResponse('OK')
 
 def get_stats():
     """Get statistics for the dashboard cards"""

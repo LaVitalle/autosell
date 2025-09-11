@@ -11,5 +11,4 @@ class Category(models.Model):
     products = models.ManyToManyField(Product, related_name='categories')
 
     def __str__(self):
-        category = f'name: {self.name}, description: {self.description}, image_url: {self.image_url}, updated_at: {self.updated_at}, created_at: {self.created_at}, products: {self.products}'
-        return category
+        return self.name

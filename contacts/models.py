@@ -8,4 +8,4 @@ class Contact(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'name: {self.name}, phone: {self.phone}, updated_at: {self.updated_at}, created_at: {self.created_at}'
+        return self.name
