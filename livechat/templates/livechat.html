@@ -4,13 +4,8 @@
 <style>
     .chat-container {
         display: flex;
+        height: 100%;
         overflow: hidden;
-    }
-    @media (max-width: 767px) {
-        .chat-container { height: calc(100vh - 57px - 52px); }
-    }
-    @media (min-width: 768px) {
-        .chat-container { height: 100vh; }
     }
 
     .conv-list { width: 320px; min-width: 320px; overflow-y: auto; }
@@ -905,7 +900,22 @@ function autoResize() {
     const wrapper = document.getElementById('contentWrapper');
     if (wrapper) {
         wrapper.style.padding = '0';
-        wrapper.style.height = '100%';
+        wrapper.style.flex = '1';
+        wrapper.style.overflow = 'hidden';
+    }
+    const main = document.querySelector('main.main-content');
+    if (main) {
+        main.style.height = '100vh';
+        main.style.minHeight = '100vh';
+        main.style.display = 'flex';
+        main.style.flexDirection = 'column';
+        main.style.overflow = 'hidden';
+    }
+    // On mobile, account for fixed bottom nav (52px)
+    const bottomNav = document.getElementById('bottomNav');
+    if (bottomNav && window.innerWidth < 768) {
+        main.style.height = 'calc(100vh - 52px)';
+        main.style.minHeight = 'calc(100vh - 52px)';
     }
 })();
 
