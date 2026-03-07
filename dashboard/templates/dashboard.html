@@ -172,7 +172,7 @@
                         <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Modo Escuro</span>
                         <div class="relative">
                             <div id="toggleSwitch" class="w-10 h-6 bg-neutral-300 dark:bg-neutral-600 rounded-full transition-colors duration-200">
-                                <div id="toggleCircle" class="w-5 h-5 bg-white rounded-full shadow-sm transform translate-x-0.5 translate-y-0.5 transition-transform duration-200"></div>
+                                <div id="toggleCircle" class="w-5 h-5 bg-white rounded-full shadow-sm transform translate-x-0.5 dark:translate-x-4 translate-y-0.5 transition-transform duration-200"></div>
                             </div>
                         </div>
                     </button>
@@ -249,7 +249,7 @@
                     <button id="darkModeToggleMobile" class="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors duration-200">
                         <div class="relative">
                             <div id="toggleSwitchMobile" class="w-8 h-5 bg-neutral-300 dark:bg-neutral-600 rounded-full transition-colors duration-200">
-                                <div id="toggleCircleMobile" class="w-4 h-4 bg-white rounded-full shadow-sm transform translate-x-0.5 translate-y-0.5 transition-transform duration-200"></div>
+                                <div id="toggleCircleMobile" class="w-4 h-4 bg-white rounded-full shadow-sm transform translate-x-0.5 dark:translate-x-3 translate-y-0.5 transition-transform duration-200"></div>
                             </div>
                         </div>
                     </button>
@@ -607,49 +607,18 @@
 
     <script>
         // Dark Mode Toggle Functionality
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const darkModeToggleMobile = document.getElementById('darkModeToggleMobile');
-        const toggleSwitch = document.getElementById('toggleSwitch');
-        const toggleCircle = document.getElementById('toggleCircle');
-        const toggleSwitchMobile = document.getElementById('toggleSwitchMobile');
-        const toggleCircleMobile = document.getElementById('toggleCircleMobile');
         const html = document.documentElement;
-        
-        // Check for saved theme preference or default to light mode
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        
-        function updateThemeElements(isDark) {
-            if (isDark) {
-                html.classList.add('dark');
-                if (toggleCircle) toggleCircle.classList.add('translate-x-4');
-                if (toggleSwitch) toggleSwitch.classList.add('bg-neutral-600');
-                if (toggleCircleMobile) toggleCircleMobile.classList.add('translate-x-3');
-                if (toggleSwitchMobile) toggleSwitchMobile.classList.add('bg-neutral-600');
-            } else {
-                html.classList.remove('dark');
-                if (toggleCircle) toggleCircle.classList.remove('translate-x-4');
-                if (toggleSwitch) toggleSwitch.classList.remove('bg-neutral-600');
-                if (toggleCircleMobile) toggleCircleMobile.classList.remove('translate-x-3');
-                if (toggleSwitchMobile) toggleSwitchMobile.classList.remove('bg-neutral-600');
-            }
-        }
-        
-        // Initialize theme
-        updateThemeElements(currentTheme === 'dark');
-        
+
         function toggleDarkMode() {
             const isDark = html.classList.contains('dark');
+            html.classList.toggle('dark');
             localStorage.setItem('theme', isDark ? 'light' : 'dark');
-            updateThemeElements(!isDark);
         }
-        
-        // Event listeners for dark mode toggles
-        if (darkModeToggle) {
-            darkModeToggle.addEventListener('click', toggleDarkMode);
-        }
-        if (darkModeToggleMobile) {
-            darkModeToggleMobile.addEventListener('click', toggleDarkMode);
-        }
+
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const darkModeToggleMobile = document.getElementById('darkModeToggleMobile');
+        if (darkModeToggle) darkModeToggle.addEventListener('click', toggleDarkMode);
+        if (darkModeToggleMobile) darkModeToggleMobile.addEventListener('click', toggleDarkMode);
         
         // Bottom Navigation Active State
         function setActiveNavItem() {
