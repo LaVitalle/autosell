@@ -57,9 +57,13 @@ autosell/
 ├── contacts/                  # App - Gestao de Contatos
 │   ├── models.py              # Model Contact
 │   ├── views.py               # CRUD completo de contatos (templates)
-│   ├── api_views.py           # Endpoints API (JSON)
+│   ├── api_views.py           # Endpoints API (JSON) com stats e message_count
 │   ├── forms.py               # ContactForm com validacao de telefone
-│   ├── urls.py                # Rotas /contacts/
+│   ├── urls.py                # Rotas /contacts/ (com trailing slashes)
+│   ├── admin.py               # Registro no Django Admin
+│   ├── templates/
+│   │   ├── contacts.html      # Listagem (render via JS/API)
+│   │   └── contact_form.html  # Formulario unificado (criar/editar)
 │   └── migrations/
 │
 ├── wppmessages/               # App - Envio de Mensagens WhatsApp
@@ -132,7 +136,7 @@ autosell/
 | `updated_at` | DateTimeField   | auto_now         |
 | `created_at` | DateTimeField   | auto_now_add     |
 
-**Validacao de telefone:** O formulario normaliza o numero para formato `55XXXXXXXXXXX` (13 digitos, com DDI do Brasil).
+**Validacao de telefone:** O formulario normaliza o numero para formato `55XXXXXXXXXXX` (13 digitos, com DDI do Brasil). Numeros com 11 digitos (DDD + celular) recebem prefixo "55" automaticamente. Caracteres nao-numericos sao rejeitados apos limpeza.
 
 ### 3.4 Message (`wppmessages/models.py`)
 
@@ -223,13 +227,15 @@ autosell/
 | Rota                          | View                | Nome                | Metodo    |
 |-------------------------------|---------------------|---------------------|-----------|
 | `/contacts/`                  | `get_all_contacts`  | `get_all_contacts`  | GET       |
-| `/contacts/create`            | `create_contact`    | `create_contact`    | GET/POST  |
-| `/contacts/edit/<id>`         | `edit_contact`      | `edit_contact`      | GET/POST  |
-| `/contacts/delete/<id>`       | `delete_contact`    | `delete_contact`    | GET/POST  |
+| `/contacts/create/`           | `create_contact`    | `create_contact`    | GET/POST  |
+| `/contacts/edit/<id>/`        | `edit_contact`      | `edit_contact`      | GET/POST  |
+| `/contacts/delete/<id>/`      | `delete_contact`    | `delete_contact`    | GET/POST  |
 | `/contacts/api/`              | `api_list_contacts` | `api_list_contacts` | GET       |
 | `/contacts/api/create/`       | `api_create_contact`| `api_create_contact`| POST      |
 | `/contacts/api/<id>/edit/`    | `api_edit_contact`  | `api_edit_contact`  | POST      |
 | `/contacts/api/<id>/delete/`  | `api_delete_contact`| `api_delete_contact`| POST      |
+
+**API de listagem (`api_list_contacts`):** Aceita parametros `page`, `per_page` (max 100) e `search` (busca por nome e telefone). Retorna campo `stats` com `total_contacts` e campo `message_count` por contato (quantidade de mensagens vinculadas).
 
 ### 5.5 Rotas de Mensagens (`wppmessages/urls.py`)
 
@@ -388,7 +394,7 @@ Deletar:
 - `CSRF_COOKIE_SECURE` e `SESSION_COOKIE_SECURE` ativos em producao
 
 ### 8.3 XSS
-- Listagem de produtos usa funcao `escapeHtml()` no JS para sanitizar dados dinamicos (`name`, `image_url`) antes de interpolar em template literals
+- Listagens de produtos e contatos usam funcao `escapeHtml()` no JS para sanitizar dados dinamicos (`name`, `phone`, `image_url`) antes de interpolar em template literals
 - Templates Django usam auto-escaping nativo nos formularios
 
 ### 8.4 Validacao de Entrada
@@ -469,6 +475,13 @@ Models registrados no admin com configuracoes customizadas:
 - **Ordenacao:** -updated_at, -created_at
 - **Paginacao:** 12 itens por pagina
 
+### ContactAdmin
+- **Colunas:** name, phone, updated_at, created_at
+- **Busca:** name, phone
+- **Filtros:** updated_at, created_at
+- **Ordenacao:** -updated_at, -created_at
+- **Paginacao:** 12 itens por pagina
+
 ---
 
 ## 12. Frontend
@@ -539,11 +552,14 @@ O endpoint `/messages/hook` e `@csrf_exempt` mas valida o IP de origem contra `E
 ### Tratamento de erros no envio de categoria
 Quando o envio de mensagem por categoria falha para produtos individuais, o sistema conta as falhas e retorna status HTTP adequado: 200 (todos enviados), 207 (envio parcial) ou 500 (todos falharam).
 
-### Listagem de produtos e categorias
-As listagens de produtos (`products.html`) e categorias (`categories.html`) sao renderizadas inteiramente via JavaScript/API. As views apenas renderizam o template — todos os dados sao carregados via endpoints API. Ambas seguem o padrao de Loading UX descrito na secao 12.1 (skeleton inline em stats, loading placeholder em listas, fade-in e animacao de numeros).
+### Listagem de produtos, categorias e contatos
+As listagens de produtos (`products.html`), categorias (`categories.html`) e contatos (`contacts.html`) sao renderizadas inteiramente via JavaScript/API. As views apenas renderizam o template — todos os dados sao carregados via endpoints API. Todas seguem o padrao de Loading UX descrito na secao 12.1 (skeleton inline em stats, loading placeholder em listas, fade-in e animacao de numeros).
 
-### Template unificado de produto
-Os formularios de criacao e edicao de produto usam um unico template (`product_form.html`). Variaveis de contexto (`is_edit`, `page_title`, `submit_label`) controlam o comportamento. No modo edicao, o formulario exibe preview da imagem atual.
+### Templates unificados de formulario
+Os formularios de criacao e edicao de produto usam um unico template (`product_form.html`), e os de contato usam `contact_form.html`. Variaveis de contexto (`is_edit`, `page_title`, `page_subtitle`, `submit_label`) controlam o comportamento. No modo edicao, o formulario de produto exibe preview da imagem atual, e o de contato exibe secao "Informacoes Adicionais" (ID, data de criacao).
+
+### Aviso de mensagens vinculadas ao excluir contato
+Ao excluir um contato, o modal de confirmacao exibe a quantidade de mensagens vinculadas (via `message_count` da API), alertando o usuario antes da exclusao.
 
 ### Ausencia de testes
 Os arquivos `tests.py` em todos os apps estao vazios. Nao ha testes automatizados implementados.

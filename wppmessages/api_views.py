@@ -1,12 +1,78 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+from django.db.models import Q
 from products.models import Product
 from categories.models import Category
 from .models import Message
 from .forms import MessageForm
 from utils.evoapi import send_media_message, send_text_message
 from utils.api_response import api_success, api_error, api_form_error, api_exception
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_list_messages(request):
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        per_page = min(100, max(1, int(request.GET.get('per_page', 10))))
+    except (ValueError, TypeError):
+        per_page = 10
+    search = request.GET.get('search', '').strip()
+
+    messages = Message.objects.select_related('contact', 'product', 'category').order_by('-sent_at')
+
+    if search:
+        messages = messages.filter(
+            Q(contact__name__icontains=search) |
+            Q(product__name__icontains=search) |
+            Q(category__name__icontains=search)
+        )
+
+    total = messages.count()
+    start = (page - 1) * per_page
+    end = start + per_page
+    messages_page = messages[start:end]
+
+    data = []
+    for m in messages_page:
+        content = ''
+        if m.product:
+            content = m.product.name
+        elif m.category:
+            content = m.category.name
+        data.append({
+            'id': m.id,
+            'contact': m.contact.name,
+            'type': m.type,
+            'content': content,
+            'status': m.status,
+            'sent_at': m.sent_at.strftime('%d/%m %H:%M') if m.sent_at else '',
+        })
+
+    total_pages = (total + per_page - 1) // per_page
+
+    total_messages = Message.objects.count()
+    stats = {
+        'total_messages': total_messages,
+        'total_sent': Message.objects.filter(status='sent').count(),
+        'total_failed': Message.objects.filter(status='failed').count(),
+    }
+
+    return api_success(
+        data=data,
+        message='Mensagens listadas com sucesso',
+        page_info={
+            'current': page,
+            'per_page': per_page,
+            'total_items': total,
+            'total_pages': total_pages,
+        },
+        stats=stats,
+    )
 
 
 def _build_product_text(product):
@@ -48,9 +114,8 @@ def api_send_message(request):
         message.save()
 
         if message.type == 'product':
-            try:
-                product = Product.objects.get(id=message.product.id)
-            except Product.DoesNotExist:
+            product = message.product
+            if not product:
                 message.status = 'failed'
                 message.save()
                 return api_error(message='Produto nao encontrado', status_code=404)
@@ -76,20 +141,18 @@ def api_send_message(request):
                 return api_error(message='Falha ao enviar mensagem', status_code=500)
 
         elif message.type == 'category':
-            try:
-                category = Category.objects.get(id=message.category.id)
-            except Category.DoesNotExist:
+            category = message.category
+            if not category:
                 message.status = 'failed'
                 message.save()
                 return api_error(message='Categoria nao encontrada', status_code=404)
 
             products = category.products.exclude(stock_active=True, stock_quantity=0)
-            if products.count() == 0:
+            total = products.count()
+            if total == 0:
                 message.status = 'failed'
                 message.save()
                 return api_error(message='Categoria sem produtos', status_code=400)
-
-            total = products.count()
             failed_count = 0
             for product in products:
                 try:

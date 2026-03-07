@@ -23,6 +23,10 @@ def send_text_message(number: str, text: str):
                 "text": text
             }
         )
+        if response.status_code >= 400:
+            log_system_event('ERROR', 'utils.evoapi.send_text_message',
+                f'API retornou status {response.status_code}: {response.text}')
+            return None
         return response.json()
     except Exception as e:
         log_system_event('ERROR', 'utils.evoapi.send_text_message', f'Erro ao enviar mensagem de texto: {e}')
@@ -46,6 +50,10 @@ def send_media_message(number: str, mediatype: str, mimetype: str, caption: str,
                 "fileName": fileName
             }
         )
+        if response.status_code >= 400:
+            log_system_event('ERROR', 'utils.evoapi.send_media_message',
+                f'API retornou status {response.status_code}: {response.text}')
+            return None
         return response.json()
     except Exception as e:
         log_system_event('ERROR', 'utils.evoapi.send_media_message', f'Erro ao enviar mensagem de midia: {e}')
