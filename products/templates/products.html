@@ -45,7 +45,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-medium text-neutral-600 dark:text-neutral-400">Total</p>
-                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statTotal">0</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statTotal"><span class="skeleton inline-block w-8 h-5 rounded">&nbsp;</span></p>
                 </div>
                 <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-medium text-neutral-600 dark:text-neutral-400">Valor Total</p>
-                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statValue">R$ 0,00</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statValue"><span class="skeleton inline-block w-16 h-5 rounded">&nbsp;</span></p>
                 </div>
                 <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,7 +73,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-medium text-neutral-600 dark:text-neutral-400">Com Estoque</p>
-                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statStock">0</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statStock"><span class="skeleton inline-block w-8 h-5 rounded">&nbsp;</span></p>
                 </div>
                 <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-medium text-neutral-600 dark:text-neutral-400">Categorias</p>
-                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statCategories">0</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statCategories"><span class="skeleton inline-block w-8 h-5 rounded">&nbsp;</span></p>
                 </div>
                 <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@
         <div class="px-4 md:px-6 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
             <h3 class="text-base font-semibold text-neutral-900 dark:text-white">Lista de Produtos</h3>
             <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <span id="resultsInfo">Mostrando 0-0 de 0 produtos</span>
+                <span id="resultsInfo"><span class="skeleton inline-block w-40 h-4 rounded">&nbsp;</span></span>
             </div>
         </div>
         
@@ -181,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     let itemsPerPage = 5;
     let searchTimeout = null;
+    let isFirstLoad = true;
     const searchInput = document.getElementById('searchInput');
     const resultsInfo = document.getElementById('resultsInfo');
     const itemsPerPageSelect = document.getElementById('itemsPerPage');
@@ -205,6 +206,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Esgotado</span>`;
     }
 
+    function showSkeletons() {
+        const tbody = document.getElementById('productsTableBody');
+        if (tbody) tbody.innerHTML = skeletonRows(4, 5);
+        const mobileContainer = document.getElementById('mobileCardsContainer');
+        if (mobileContainer) mobileContainer.innerHTML = skeletonCards(3);
+    }
+
+    showSkeletons();
     loadProducts();
 
     if (searchInput) {
@@ -240,6 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function loadProducts() {
         const search = searchInput ? searchInput.value.trim() : '';
+        if (!isFirstLoad) showSkeletons();
         const { ok, data } = await apiRequest(`/products/api/?page=${currentPage}&per_page=${itemsPerPage}&search=${encodeURIComponent(search)}`);
         if (!ok) return;
 
@@ -247,6 +257,13 @@ document.addEventListener('DOMContentLoaded', function() {
         renderCards(data.data);
         updatePagination(data);
         updateStats(data.stats);
+
+        const tbody = document.getElementById('productsTableBody');
+        if (tbody) applyFadeIn(tbody);
+        const mobileContainer = document.getElementById('mobileCardsContainer');
+        if (mobileContainer) applyFadeIn(mobileContainer);
+
+        isFirstLoad = false;
     }
 
     function renderTable(products) {
@@ -352,10 +369,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateStats(stats) {
         if (!stats) return;
         const el = (id) => document.getElementById(id);
-        if (el('statTotal')) el('statTotal').textContent = stats.total_products;
-        if (el('statValue')) el('statValue').textContent = `R$ ${parseFloat(stats.total_value).toFixed(2).replace('.', ',')}`;
-        if (el('statStock')) el('statStock').textContent = stats.with_stock_control;
-        if (el('statCategories')) el('statCategories').textContent = stats.total_categories;
+        if (el('statTotal')) animateNumber(el('statTotal'), stats.total_products);
+        if (el('statValue')) animateNumber(el('statValue'), parseFloat(stats.total_value), {
+            formatter: v => 'R$ ' + v.toFixed(2).replace('.', ',')
+        });
+        if (el('statStock')) animateNumber(el('statStock'), stats.with_stock_control);
+        if (el('statCategories')) animateNumber(el('statCategories'), stats.total_categories);
     }
 
     function updatePagination(data) {

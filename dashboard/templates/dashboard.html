@@ -136,6 +136,31 @@
             transform: translateY(0);
         }
 
+        /* Skeleton loading */
+        .skeleton {
+            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 0.25rem;
+        }
+        .dark .skeleton {
+            background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+            background-size: 200% 100%;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Content fade in */
+        .content-fade-in {
+            animation: contentFadeIn 0.3s ease-out;
+        }
+        @keyframes contentFadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* Mobile adjustments */
         @media (max-width: 767px) {
             .main-content {
@@ -582,6 +607,71 @@
             const map = {};
             data.data.forEach(e => { if (e.field && e.messages) map[e.field] = e.messages; });
             return map;
+        }
+
+        // Animate Number
+        function animateNumber(element, endValue, options = {}) {
+            const duration = options.duration || 600;
+            const prefix = options.prefix || '';
+            const suffix = options.suffix || '';
+            const formatter = options.formatter || (v => Math.round(v).toLocaleString('pt-BR'));
+            const startValue = parseFloat(element.dataset.currentValue || '0') || 0;
+            element.dataset.currentValue = endValue;
+            const startTime = performance.now();
+            function tick(now) {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = startValue + (endValue - startValue) * eased;
+                element.textContent = prefix + formatter(current) + suffix;
+                if (progress < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        }
+
+        // Skeleton Rows for tables
+        function skeletonRows(columns, count) {
+            const widths = ['w-24', 'w-20', 'w-16', 'w-28', 'w-12', 'w-32', 'w-14'];
+            let html = '';
+            for (let r = 0; r < count; r++) {
+                html += '<tr>';
+                for (let c = 0; c < columns; c++) {
+                    const w = widths[(r + c) % widths.length];
+                    html += `<td class="px-4 py-3"><div class="skeleton h-4 ${w} rounded">&nbsp;</div></td>`;
+                }
+                html += '</tr>';
+            }
+            return html;
+        }
+
+        // Skeleton Cards for mobile
+        function skeletonCards(count) {
+            let html = '';
+            for (let i = 0; i < count; i++) {
+                html += `
+                <div class="p-3">
+                    <div class="flex items-start space-x-3">
+                        <div class="skeleton w-10 h-10 rounded-lg flex-shrink-0">&nbsp;</div>
+                        <div class="flex-1">
+                            <div class="skeleton h-4 w-32 mb-2 rounded">&nbsp;</div>
+                            <div class="skeleton h-3 w-20 mb-3 rounded">&nbsp;</div>
+                            <div class="flex space-x-2">
+                                <div class="skeleton h-6 w-12 rounded">&nbsp;</div>
+                                <div class="skeleton h-6 w-14 rounded">&nbsp;</div>
+                                <div class="skeleton h-6 w-14 rounded">&nbsp;</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            return html;
+        }
+
+        // Apply content-fade-in with re-trigger support
+        function applyFadeIn(element) {
+            element.classList.remove('content-fade-in');
+            void element.offsetWidth;
+            element.classList.add('content-fade-in');
+            element.addEventListener('animationend', () => element.classList.remove('content-fade-in'), { once: true });
         }
 
         // Button Loading State
