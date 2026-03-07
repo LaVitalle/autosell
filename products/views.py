@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Product
 from .forms import ProductForm
-from utils.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
+from utils.storage import upload_file, delete_file
 import uuid
 
 # Create your views here.
@@ -35,7 +35,7 @@ def create_product(request):
             image = request.FILES.get("image_file")
             if image:
                 file_name = f"products/{str(uuid.uuid4()) + image.name}"
-                img_url = upload_file_to_supabase(file_name, image)
+                img_url = upload_file(file_name, image)
                 if img_url:
                     product.image_url = img_url
             product.save()
@@ -50,7 +50,7 @@ def create_product(request):
 def delete_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     if request.method == 'POST' and request.POST['_method'] == 'DELETE':
-        delete_file_from_supabase(product.image_url)
+        delete_file(product.image_url)
         product.delete()
         return redirect('get_all_products')
     else:
@@ -66,9 +66,9 @@ def edit_product(request, product_id):
             image = request.FILES.get("image_file")
             if image:
                 file_name = f"products/{str(uuid.uuid4()) + image.name}"
-                img_url = upload_file_to_supabase(file_name, image)
+                img_url = upload_file(file_name, image)
                 if img_url:
-                    delete_file_from_supabase(product.image_url)
+                    delete_file(product.image_url)
                     product.image_url = img_url
             product.save()
             return redirect('get_all_products')

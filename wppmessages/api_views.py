@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from products.models import Product
@@ -27,7 +28,7 @@ def _send_product_message(phone, product):
             mediatype='image',
             mimetype='image/png',
             caption=text,
-            media=product.image_url,
+            media=f'{settings.SITE_URL}{product.image_url}',
             fileName=f'{product.name}.png'
         )
     return send_text_message(phone, text)

@@ -125,8 +125,12 @@ else:
     }
 
 
-SUPABASE_URL = config("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY")
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Site URL (for absolute URLs in external APIs)
+SITE_URL = config('SITE_URL', default='https://autosell.upperlavtech.com')
 
 # Evolution API
 EVOLUTION_SERVER_IP = config("EVOLUTION_SERVER_IP")

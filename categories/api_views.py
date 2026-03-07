@@ -4,7 +4,7 @@ from django.views.decorators.http import require_http_methods
 from .models import Category
 from .forms import CategoryForm
 from products.models import Product
-from utils.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
+from utils.storage import upload_file, delete_file
 from utils.api_response import api_success, api_error, api_form_error, api_exception
 
 
@@ -58,7 +58,7 @@ def api_create_category(request):
             image = request.FILES.get("image_file")
             if image:
                 file_name = f"categories/{uuid.uuid4()}{image.name}"
-                img_url = upload_file_to_supabase(file_name, image)
+                img_url = upload_file(file_name, image)
                 if img_url:
                     category.image_url = img_url
             category.save()
@@ -99,9 +99,9 @@ def api_edit_category(request, category_id):
             image = request.FILES.get("image_file")
             if image:
                 file_name = f"categories/{uuid.uuid4()}{image.name}"
-                img_url = upload_file_to_supabase(file_name, image)
+                img_url = upload_file(file_name, image)
                 if img_url:
-                    delete_file_from_supabase(category.image_url)
+                    delete_file(category.image_url)
                     category.image_url = img_url
             category.save()
 
@@ -136,6 +136,6 @@ def api_delete_category(request, category_id):
         return api_error(message='Categoria nao encontrada', status_code=404)
 
     if category.image_url:
-        delete_file_from_supabase(category.image_url)
+        delete_file(category.image_url)
     category.delete()
     return api_success(message='Categoria excluida com sucesso')

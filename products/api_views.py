@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from .models import Product
 from .forms import ProductForm
-from utils.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
+from utils.storage import upload_file, delete_file
 from utils.api_response import api_success, api_error, api_form_error, api_exception
 
 
@@ -60,7 +60,7 @@ def api_create_product(request):
             image = request.FILES.get("image_file")
             if image:
                 file_name = f"products/{uuid.uuid4()}{image.name}"
-                img_url = upload_file_to_supabase(file_name, image)
+                img_url = upload_file(file_name, image)
                 if img_url:
                     product.image_url = img_url
             product.save()
@@ -94,9 +94,9 @@ def api_edit_product(request, product_id):
             image = request.FILES.get("image_file")
             if image:
                 file_name = f"products/{uuid.uuid4()}{image.name}"
-                img_url = upload_file_to_supabase(file_name, image)
+                img_url = upload_file(file_name, image)
                 if img_url:
-                    delete_file_from_supabase(product.image_url)
+                    delete_file(product.image_url)
                     product.image_url = img_url
             product.save()
             return api_success(
@@ -122,6 +122,6 @@ def api_delete_product(request, product_id):
         return api_error(message='Produto nao encontrado', status_code=404)
 
     if product.image_url:
-        delete_file_from_supabase(product.image_url)
+        delete_file(product.image_url)
     product.delete()
     return api_success(message='Produto excluido com sucesso')

@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 import uuid
-from utils.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
+from utils.storage import upload_file, delete_file
 from .models import Category
 from .forms import CategoryForm
 from products.models import Product
@@ -41,7 +41,7 @@ def create_category(request):
             image = request.FILES.get("image_file")
             if image:
                 file_name = f"categories/{str(uuid.uuid4()) + image.name}"
-                img_url = upload_file_to_supabase(file_name, image)
+                img_url = upload_file(file_name, image)
                 if img_url:
                     category.image_url = img_url
             category.save()
@@ -79,9 +79,9 @@ def edit_category(request, category_id):
             image = request.FILES.get("image_file")
             if image:
                 file_name = f"categories/{str(uuid.uuid4()) + image.name}"
-                img_url = upload_file_to_supabase(file_name, image)
+                img_url = upload_file(file_name, image)
                 if img_url:
-                    delete_file_from_supabase(category.image_url)
+                    delete_file(category.image_url)
                     category.image_url = img_url
             category.save()
             
@@ -116,7 +116,7 @@ def delete_category(request, category_id):
     if request.method == 'POST' and request.POST['_method'] == 'DELETE':
         # Deletar imagem do Supabase se existir
         if category.image_url:
-            delete_file_from_supabase(category.image_url)
+            delete_file(category.image_url)
         category.delete()
         return redirect('get_all_categories')
     else:
