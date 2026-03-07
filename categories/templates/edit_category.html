@@ -742,22 +742,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
       setButtonLoading(submitBtn, false);
 
-      if (ok && data.success) {
-        showToast('Categoria atualizada com sucesso!', 'success');
+      if (ok) {
+        showToast(apiMessage(data), 'success');
         setTimeout(() => window.location.href = '/categories/', 800);
-      } else if (data.errors) {
-        Object.entries(data.errors).forEach(([field, errors]) => {
-          const input = document.getElementById(`id_${field}`);
-          if (input) {
-            const errorDiv = document.createElement('p');
-            errorDiv.className = 'text-red-600 dark:text-red-400 text-xs mt-1 flex items-center error-message';
-            errorDiv.textContent = errors[0];
-            input.parentNode.appendChild(errorDiv);
-          }
-        });
-        showToast('Corrija os erros no formulário', 'error');
       } else {
-        showToast(data.error || 'Erro ao atualizar categoria', 'error');
+        const fieldErrors = apiFieldErrors(data);
+        if (Object.keys(fieldErrors).length) {
+          Object.entries(fieldErrors).forEach(([field, msgs]) => {
+            const input = document.getElementById(`id_${field}`);
+            if (input) {
+              const errorDiv = document.createElement('p');
+              errorDiv.className = 'text-red-600 dark:text-red-400 text-xs mt-1 flex items-center error-message';
+              errorDiv.textContent = msgs[0];
+              input.parentNode.appendChild(errorDiv);
+            }
+          });
+        }
+        showToast(apiMessage(data), 'error');
       }
     });
   }

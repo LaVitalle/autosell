@@ -555,9 +555,28 @@
             const config = { method, headers, credentials: 'same-origin' };
             if (body) config.body = isFormData ? body : JSON.stringify(body);
 
-            const response = await fetch(url, config);
-            const data = await response.json();
-            return { ok: response.ok, status: response.status, data };
+            try {
+                const response = await fetch(url, config);
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    data = { data: null, status: { code: response.status, message: `Erro no servidor (${response.status})` }, page: null };
+                }
+                return { ok: response.ok, status: response.status, data };
+            } catch (err) {
+                return { ok: false, status: 0, data: { data: null, status: { code: 0, message: 'Erro de conexao com o servidor' }, page: null } };
+            }
+        }
+
+        // API Response Helpers
+        function apiMessage(data) { return data?.status?.message || 'Erro desconhecido'; }
+        function apiFieldErrors(data) {
+            if (!Array.isArray(data?.data)) return {};
+            const map = {};
+            data.data.forEach(e => { if (e.field && e.messages) map[e.field] = e.messages; });
+            return map;
         }
 
         // Button Loading State

@@ -1,10 +1,10 @@
 import uuid
-from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from .models import Product
 from .forms import ProductForm
 from utils.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
+from utils.api_response import api_success, api_error, api_form_error, api_exception
 
 
 @login_required
@@ -37,39 +37,46 @@ def api_list_products(request):
             'created_at': p.created_at.isoformat() if p.created_at else '',
         })
 
-    return JsonResponse({
-        'success': True,
-        'products': data,
-        'total': total,
-        'page': page,
-        'per_page': per_page,
-        'total_pages': (total + per_page - 1) // per_page,
-    })
+    total_pages = (total + per_page - 1) // per_page
+    return api_success(
+        data=data,
+        message='Produtos listados com sucesso',
+        page_info={
+            'current': page,
+            'per_page': per_page,
+            'total_items': total,
+            'total_pages': total_pages,
+        },
+    )
 
 
 @login_required
 @require_http_methods(["POST"])
 def api_create_product(request):
-    form = ProductForm(request.POST, request.FILES)
-    if form.is_valid():
-        product = form.save(commit=False)
-        image = request.FILES.get("image_file")
-        if image:
-            file_name = f"products/{uuid.uuid4()}{image.name}"
-            img_url = upload_file_to_supabase(file_name, image)
-            if img_url:
-                product.image_url = img_url
-        product.save()
-        return JsonResponse({
-            'success': True,
-            'product': {
-                'id': product.id,
-                'name': product.name,
-                'price': str(product.price),
-                'image_url': product.image_url or '',
-            }
-        }, status=201)
-    return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+    try:
+        form = ProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            product = form.save(commit=False)
+            image = request.FILES.get("image_file")
+            if image:
+                file_name = f"products/{uuid.uuid4()}{image.name}"
+                img_url = upload_file_to_supabase(file_name, image)
+                if img_url:
+                    product.image_url = img_url
+            product.save()
+            return api_success(
+                data=[{
+                    'id': product.id,
+                    'name': product.name,
+                    'price': str(product.price),
+                    'image_url': product.image_url or '',
+                }],
+                message='Produto criado com sucesso',
+                status_code=201,
+            )
+        return api_form_error(form)
+    except Exception:
+        return api_exception(request, 'products.api_views.api_create_product', 'Erro ao criar produto')
 
 
 @login_required
@@ -78,29 +85,32 @@ def api_edit_product(request, product_id):
     try:
         product = Product.objects.get(id=product_id)
     except Product.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Produto não encontrado'}, status=404)
+        return api_error(message='Produto nao encontrado', status_code=404)
 
-    form = ProductForm(request.POST, request.FILES, instance=product)
-    if form.is_valid():
-        product = form.save(commit=False)
-        image = request.FILES.get("image_file")
-        if image:
-            file_name = f"products/{uuid.uuid4()}{image.name}"
-            img_url = upload_file_to_supabase(file_name, image)
-            if img_url:
-                delete_file_from_supabase(product.image_url)
-                product.image_url = img_url
-        product.save()
-        return JsonResponse({
-            'success': True,
-            'product': {
-                'id': product.id,
-                'name': product.name,
-                'price': str(product.price),
-                'image_url': product.image_url or '',
-            }
-        })
-    return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+    try:
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            product = form.save(commit=False)
+            image = request.FILES.get("image_file")
+            if image:
+                file_name = f"products/{uuid.uuid4()}{image.name}"
+                img_url = upload_file_to_supabase(file_name, image)
+                if img_url:
+                    delete_file_from_supabase(product.image_url)
+                    product.image_url = img_url
+            product.save()
+            return api_success(
+                data=[{
+                    'id': product.id,
+                    'name': product.name,
+                    'price': str(product.price),
+                    'image_url': product.image_url or '',
+                }],
+                message='Produto atualizado com sucesso',
+            )
+        return api_form_error(form)
+    except Exception:
+        return api_exception(request, 'products.api_views.api_edit_product', 'Erro ao atualizar produto')
 
 
 @login_required
@@ -109,9 +119,9 @@ def api_delete_product(request, product_id):
     try:
         product = Product.objects.get(id=product_id)
     except Product.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Produto não encontrado'}, status=404)
+        return api_error(message='Produto nao encontrado', status_code=404)
 
     if product.image_url:
         delete_file_from_supabase(product.image_url)
     product.delete()
-    return JsonResponse({'success': True})
+    return api_success(message='Produto excluido com sucesso')

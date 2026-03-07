@@ -1,5 +1,6 @@
 from django.conf import settings
 from requests import post
+from utils.api_response import log_system_event
 
 # Configurações da Evolution API
 EVOLUTION_TOKEN = settings.EVOLUTION_TOKEN
@@ -24,7 +25,7 @@ def send_text_message(number: str, text: str):
         )
         return response.json()
     except Exception as e:
-        print(f"Erro ao enviar mensagem de texto: {e}")
+        log_system_event('ERROR', 'utils.evoapi.send_text_message', f'Erro ao enviar mensagem de texto: {e}')
         return None
 
 def send_media_message(number: str, mediatype: str, mimetype: str, caption: str, media: str, fileName: str):
@@ -47,5 +48,5 @@ def send_media_message(number: str, mediatype: str, mimetype: str, caption: str,
         )
         return response.json()
     except Exception as e:
-        print(f"Erro ao enviar mensagem de mídia: {e}")
+        log_system_event('ERROR', 'utils.evoapi.send_media_message', f'Erro ao enviar mensagem de midia: {e}')
         return None

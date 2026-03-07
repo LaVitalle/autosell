@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'categories',
     'contacts',
     'wppmessages',
+    'systemlogs',
 ]
 
 MIDDLEWARE = [

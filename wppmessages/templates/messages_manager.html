@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setButtonLoading(submitBtn, true, 'Enviando...');
             const formData = new FormData(form);
 
-            const { ok, data } = await apiRequest('/messages/api/send/', {
+            const { ok, status, data } = await apiRequest('/messages/api/send/', {
                 method: 'POST',
                 body: formData,
                 isFormData: true,
@@ -384,17 +384,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
             setButtonLoading(submitBtn, false);
 
-            if (ok && data.success) {
-                if (data.detail) {
-                    showToast(data.detail, data.failed_count > 0 ? 'warning' : 'success');
-                } else {
-                    showToast('Mensagem enviada com sucesso!', 'success');
-                }
+            if (ok) {
+                const toastType = status === 207 ? 'warning' : 'success';
+                showToast(apiMessage(data), toastType);
 
                 // Add message to the top of the list dynamically
-                if (data.message && messagesContainer) {
-                    const typeLabel = data.message.type === 'product' ? 'Produto' : 'Categoria';
-                    const typeColor = data.message.type === 'product'
+                const msg = Array.isArray(data.data) && data.data[0] ? data.data[0] : null;
+                if (msg && messagesContainer) {
+                    const typeLabel = msg.type === 'product' ? 'Produto' : 'Categoria';
+                    const typeColor = msg.type === 'product'
                         ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400'
                         : 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400';
 
@@ -407,12 +405,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center justify-between">
-                                    <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">${data.message.contact}</h4>
-                                    <span class="text-xs text-neutral-500 dark:text-neutral-400 ml-2 flex-shrink-0">${data.message.sent_at || 'Agora'}</span>
+                                    <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">${msg.contact}</h4>
+                                    <span class="text-xs text-neutral-500 dark:text-neutral-400 ml-2 flex-shrink-0">${msg.sent_at || 'Agora'}</span>
                                 </div>
                                 <div class="flex items-center space-x-2 mt-1">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${typeColor}">${typeLabel}</span>
-                                    <span class="text-xs text-neutral-600 dark:text-neutral-400 truncate max-w-32">${data.message.content || ''}</span>
+                                    <span class="text-xs text-neutral-600 dark:text-neutral-400 truncate max-w-32">${msg.content || ''}</span>
                                 </div>
                             </div>
                         </div>`;
@@ -422,11 +420,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset form
                 form.reset();
                 toggleSendTypeFields();
-            } else if (data.errors) {
-                const firstError = Object.values(data.errors)[0];
-                showToast(Array.isArray(firstError) ? firstError[0] : firstError, 'error');
             } else {
-                showToast(data.error || 'Erro ao enviar mensagem', 'error');
+                const fieldErrors = apiFieldErrors(data);
+                if (Object.keys(fieldErrors).length) {
+                    const firstField = Object.values(fieldErrors)[0];
+                    showToast(firstField[0], 'error');
+                } else {
+                    showToast(apiMessage(data), 'error');
+                }
             }
         });
     }

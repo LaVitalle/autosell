@@ -321,8 +321,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const search = searchInput ? searchInput.value.trim() : '';
         const { ok, data } = await apiRequest(`/categories/api/?page=${currentPage}&per_page=${itemsPerPage}&search=${encodeURIComponent(search)}`);
         if (!ok) return;
-        renderTable(data.categories);
-        renderCards(data.categories);
+        renderTable(data.data);
+        renderCards(data.data);
         updatePagination(data);
     }
 
@@ -383,26 +383,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updatePagination(data) {
+        const pg = data.page;
         if (resultsInfo) {
-            if (data.total === 0) resultsInfo.textContent = 'Nenhuma categoria encontrada';
+            if (!pg || pg.total_items === 0) resultsInfo.textContent = 'Nenhuma categoria encontrada';
             else {
-                const start = (data.page - 1) * data.per_page + 1;
-                const end = Math.min(data.page * data.per_page, data.total);
-                resultsInfo.textContent = `Mostrando ${start}-${end} de ${data.total} categorias`;
+                const start = (pg.current - 1) * pg.per_page + 1;
+                const end = Math.min(pg.current * pg.per_page, pg.total_items);
+                resultsInfo.textContent = `Mostrando ${start}-${end} de ${pg.total_items} categorias`;
             }
         }
-        if (prevButton) prevButton.disabled = data.page <= 1;
-        if (nextButton) nextButton.disabled = data.page >= data.total_pages;
+        if (prevButton) prevButton.disabled = !pg || pg.current <= 1;
+        if (nextButton) nextButton.disabled = !pg || pg.current >= pg.total_pages;
         if (pageNumbers) {
             pageNumbers.innerHTML = '';
-            if (data.total_pages > 1) {
-                let startPage = Math.max(1, data.page - 2);
-                let endPage = Math.min(data.total_pages, startPage + 4);
+            if (pg && pg.total_pages > 1) {
+                let startPage = Math.max(1, pg.current - 2);
+                let endPage = Math.min(pg.total_pages, startPage + 4);
                 if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
                 for (let i = startPage; i <= endPage; i++) {
                     const btn = document.createElement('button');
                     btn.textContent = i;
-                    btn.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${i === data.page ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'}`;
+                    btn.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${i === pg.current ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'}`;
                     btn.addEventListener('click', () => { currentPage = i; loadCategories(); });
                     pageNumbers.appendChild(btn);
                 }
@@ -418,12 +419,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         if (!confirmed) return;
         const { ok, data } = await apiRequest(`/categories/api/${id}/delete/`, { method: 'POST' });
-        if (ok && data.success) {
+        if (ok) {
             const row = document.querySelector(`tr[data-id="${id}"], .category-card[data-id="${id}"]`);
             if (row) { row.classList.add('row-removing'); row.addEventListener('animationend', () => loadCategories()); }
             else loadCategories();
-            showToast('Categoria excluída com sucesso', 'success');
-        } else { showToast(data.error || 'Erro ao excluir categoria', 'error'); }
+            showToast(apiMessage(data), 'success');
+        } else { showToast(apiMessage(data), 'error'); }
     };
 });
 </script>

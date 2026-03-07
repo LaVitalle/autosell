@@ -255,17 +255,18 @@
 
             setButtonLoading(submitBtn, false);
 
-            if (ok && data.success) {
-                showToast('Produto criado com sucesso!', 'success');
+            if (ok) {
+                showToast(apiMessage(data), 'success');
                 setTimeout(() => window.location.href = '/products/', 800);
-            } else if (data.errors) {
-                Object.entries(data.errors).forEach(([field, errors]) => {
-                    const input = document.getElementById(`id_${field}`);
-                    if (input) showError(input, errors[0]);
-                });
-                showToast('Corrija os erros no formulário', 'error');
             } else {
-                showToast('Erro ao criar produto', 'error');
+                const fieldErrors = apiFieldErrors(data);
+                if (Object.keys(fieldErrors).length) {
+                    Object.entries(fieldErrors).forEach(([field, msgs]) => {
+                        const input = document.getElementById(`id_${field}`);
+                        if (input) showError(input, msgs[0]);
+                    });
+                }
+                showToast(apiMessage(data), 'error');
             }
         });
 
