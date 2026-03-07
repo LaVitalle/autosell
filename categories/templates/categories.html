@@ -151,7 +151,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     let itemsPerPage = 5;
     let searchTimeout = null;
-    let isFirstLoad = true;
     const searchInput = document.getElementById('searchInput');
     const resultsInfo = document.getElementById('resultsInfo');
     const itemsPerPageSelect = document.getElementById('itemsPerPage');
@@ -166,14 +165,37 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
-    function showSkeletons() {
-        const tbody = document.getElementById('categoriesTableBody');
-        if (tbody) tbody.innerHTML = skeletonRows(3, 5);
-        const mobileContainer = document.getElementById('mobileCardsContainer');
-        if (mobileContainer) mobileContainer.innerHTML = skeletonCards(3);
+    function showLoading() {
+        const container = document.getElementById('categoriesContainer');
+        if (!container) return;
+        const desktopTable = document.getElementById('desktopTable');
+        const mobileCards = document.getElementById('mobileCards');
+        const emptyEl = document.getElementById('emptyState');
+        if (desktopTable) desktopTable.classList.add('hidden');
+        if (mobileCards) mobileCards.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
+        let placeholder = container.querySelector('.loading-placeholder');
+        if (!placeholder) {
+            placeholder = document.createElement('div');
+            placeholder.className = 'loading-placeholder';
+            placeholder.innerHTML = loadingPlaceholder();
+            container.appendChild(placeholder);
+        }
+        placeholder.classList.remove('hidden');
     }
 
-    showSkeletons();
+    function hideLoading() {
+        const container = document.getElementById('categoriesContainer');
+        if (!container) return;
+        const placeholder = container.querySelector('.loading-placeholder');
+        if (placeholder) placeholder.classList.add('hidden');
+        const desktopTable = document.getElementById('desktopTable');
+        const mobileCards = document.getElementById('mobileCards');
+        if (desktopTable) desktopTable.className = 'hidden md:block h-full overflow-y-auto';
+        if (mobileCards) mobileCards.className = 'md:hidden h-full overflow-y-auto';
+    }
+
+    showLoading();
     loadCategories();
 
     if (searchInput) {
@@ -191,9 +213,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function loadCategories() {
         const search = searchInput ? searchInput.value.trim() : '';
-        if (!isFirstLoad) showSkeletons();
+        showLoading();
         const { ok, data } = await apiRequest(`/categories/api/?page=${currentPage}&per_page=${itemsPerPage}&search=${encodeURIComponent(search)}`);
-        if (!ok) return;
+        if (!ok) { hideLoading(); return; }
 
         const categories = data.data;
         const pg = data.page;
@@ -201,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         renderTable(categories);
         renderCards(categories);
+        hideLoading();
         updatePagination(data);
 
         const tbody = document.getElementById('categoriesTableBody');
@@ -220,7 +243,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        isFirstLoad = false;
     }
 
     function renderTable(categories) {

@@ -628,42 +628,16 @@
             requestAnimationFrame(tick);
         }
 
-        // Skeleton Rows for tables
-        function skeletonRows(columns, count) {
-            const widths = ['w-24', 'w-20', 'w-16', 'w-28', 'w-12', 'w-32', 'w-14'];
-            let html = '';
-            for (let r = 0; r < count; r++) {
-                html += '<tr>';
-                for (let c = 0; c < columns; c++) {
-                    const w = widths[(r + c) % widths.length];
-                    html += `<td class="px-4 py-3"><div class="skeleton h-4 ${w} rounded">&nbsp;</div></td>`;
-                }
-                html += '</tr>';
-            }
-            return html;
-        }
-
-        // Skeleton Cards for mobile
-        function skeletonCards(count) {
-            let html = '';
-            for (let i = 0; i < count; i++) {
-                html += `
-                <div class="p-3">
-                    <div class="flex items-start space-x-3">
-                        <div class="skeleton w-10 h-10 rounded-lg flex-shrink-0">&nbsp;</div>
-                        <div class="flex-1">
-                            <div class="skeleton h-4 w-32 mb-2 rounded">&nbsp;</div>
-                            <div class="skeleton h-3 w-20 mb-3 rounded">&nbsp;</div>
-                            <div class="flex space-x-2">
-                                <div class="skeleton h-6 w-12 rounded">&nbsp;</div>
-                                <div class="skeleton h-6 w-14 rounded">&nbsp;</div>
-                                <div class="skeleton h-6 w-14 rounded">&nbsp;</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            }
-            return html;
+        // Loading placeholder for list containers
+        function loadingPlaceholder() {
+            return `
+            <div class="flex flex-col items-center justify-center py-12">
+                <svg class="animate-spin w-7 h-7 text-neutral-400 dark:text-neutral-500 mb-3" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-sm text-neutral-400 dark:text-neutral-500">Carregando...</span>
+            </div>`;
         }
 
         // Apply content-fade-in with re-trigger support
