@@ -27,25 +27,23 @@ SECRET_KEY = config('SECRET_KEY')
 PROD = config('PROD')
 DEBUG = True if PROD == 'False' else True
 
-ALLOWED_HOSTS = ['autosell.lavitalle.tech', 'dev.autosell.lavitalle.tech', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['autosell.upperlavtech.com', 'localhost', '127.0.0.1']
 
 # CORS and CSRF Configuration
 CORS_ALLOWED_ORIGINS = [
-    "https://autosell.lavitalle.tech",
-    "https://dev.autosell.lavitalle.tech",
+    "https://autosell.upperlavtech.com",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://evolution-api.lavitalle.tech",
+    "https://evo.upperlavtech.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://autosell.lavitalle.tech",
-    "https://dev.autosell.lavitalle.tech",
+    "https://autosell.upperlavtech.com",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://evolution-api.lavitalle.tech",
+    "https://evo.upperlavtech.com",
 ]
 
 # Security Settings
