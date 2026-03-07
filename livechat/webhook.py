@@ -112,6 +112,28 @@ def _process_single_message(data):
     if not text:
         text = '[Mensagem]'
 
+    # Dedup fallback for fromMe messages (echo from Evolution API)
+    if from_me:
+        from datetime import timedelta
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=60)
+        duplicate = ChatMessage.objects.filter(
+            remote_jid=remote_jid,
+            direction='out',
+            content=text,
+            timestamp__gte=cutoff,
+        ).exists()
+        if duplicate:
+            # Echo of a system-sent message — update wpp_message_id if missing
+            ChatMessage.objects.filter(
+                remote_jid=remote_jid,
+                direction='out',
+                content=text,
+                timestamp__gte=cutoff,
+                wpp_message_id__isnull=True,
+            ).order_by('-timestamp').update(wpp_message_id=wpp_message_id)
+            return
+        # No duplicate found — external message sent from phone, continue to register
+
     phone = remote_jid.split('@')[0]
     push_name = data.get('pushName', '').strip()
 

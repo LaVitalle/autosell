@@ -12,7 +12,7 @@ from contacts.models import Contact
 from products.models import Product
 from categories.models import Category
 from .models import Conversation, ChatMessage, Cart, CartItem, Sale, SaleItem
-from utils.api_response import api_success, api_error, api_exception
+from utils.api_response import api_success, api_error, api_exception, log_system_event
 from utils.evoapi import send_text_message, send_product_message, build_product_text, mark_message_as_read
 
 
@@ -119,6 +119,8 @@ def api_send_text(request, conversation_id):
             return api_error('Texto vazio')
 
         result = send_text_message(conversation.contact.phone, text)
+        log_system_event('INFO', 'livechat.api.send_text',
+            f'Phone: {conversation.contact.phone} | Result type: {type(result).__name__} | Result: {str(result)[:500]}')
 
         now = dj_timezone.now()
         wpp_id = None

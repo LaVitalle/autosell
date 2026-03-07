@@ -23,6 +23,8 @@ def send_text_message(number: str, text: str):
                 "text": text
             }
         )
+        log_system_event('INFO', 'utils.evoapi.send_text_message',
+            f'Enviando para {number} | Status: {response.status_code} | Response: {response.text[:500]}')
         if response.status_code >= 400:
             log_system_event('ERROR', 'utils.evoapi.send_text_message',
                 f'API retornou status {response.status_code}: {response.text}')
