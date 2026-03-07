@@ -48,9 +48,9 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Security Settings
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = False  # Set to True in production with HTTPS
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
-CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SECURE_SSL_REDIRECT = PROD == 'True'
+SESSION_COOKIE_SECURE = PROD == 'True'
+CSRF_COOKIE_SECURE = PROD == 'True'
 
 
 # Application definition
