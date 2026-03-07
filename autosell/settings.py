@@ -35,6 +35,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://dev.autosell.lavitalle.tech",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://evolution-api.lavitalle.tech",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -44,6 +45,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://dev.autosell.lavitalle.tech",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://evolution-api.lavitalle.tech",
 ]
 
 # Security Settings
@@ -66,6 +68,8 @@ INSTALLED_APPS = [
     'dashboard',
     'products',
     'categories',
+    'contacts',
+    'wppmessages',
 ]
 
 MIDDLEWARE = [
@@ -84,7 +88,7 @@ ROOT_URLCONF = 'autosell.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # Adicionar esta linha
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -102,20 +106,34 @@ WSGI_APPLICATION = 'autosell.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
+if PROD == 'True':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME'),
+            'USER': config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': config('DB_HOST'),
+            'PORT': config('DB_PORT'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
 
 SUPABASE_URL = config("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY")
 
+# Evolution API
+EVOLUTION_TOKEN = config("EVOLUTION_TOKEN")
+EVOLUTION_URL = config("EVOLUTION_URL")
+EVOLUTION_INSTANCE_ID = config("EVOLUTION_INSTANCE_ID")
+EVOLUTION_INSTANCE_TOKEN = config("EVOLUTION_INSTANCE_TOKEN")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -157,3 +175,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configurações de Autenticação
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'

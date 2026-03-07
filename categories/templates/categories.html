@@ -1,142 +1,174 @@
 {% extends 'dashboard.html' %}
 {% block content %}
-<div class="max-w-4xl mx-auto">
-  <!-- Header Section -->
-  <div class="mb-8">
-    <div class="flex items-center space-x-3 mb-2">
-      <div class="w-10 h-10 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
-        <svg class="w-6 h-6 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<!-- Layout Zero Scroll - Altura Fixa 100vh -->
+<div class="max-w-7xl mx-auto h-full flex flex-col mobile-content-padding">
+  
+  <!-- Header Compacto com Busca Integrada -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+    <!-- Título com Ícone -->
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+        <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
         </svg>
       </div>
       <div>
-        <h1 class="text-3xl font-bold text-neutral-900 dark:text-white">Categorias</h1>
-        <p class="text-neutral-600 dark:text-neutral-400">Gerencie as categorias dos seus produtos</p>
+        <h1 class="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white">Categorias</h1>
+        <p class="text-xs md:text-sm text-neutral-600 dark:text-neutral-400">Gerencie as categorias dos seus produtos</p>
       </div>
     </div>
     
-    <!-- Action Button -->
-    <div class="flex justify-end">
-      <button class="inline-flex items-center justify-center px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm hover:shadow-md">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Área de Busca e Ações -->
+    <div class="flex items-center gap-3 w-full sm:w-auto">
+      <!-- Campo de Busca -->
+      <div class="relative flex-1 sm:flex-none">
+        <input 
+          type="text" 
+          id="searchInput"
+          placeholder="Buscar categorias..."
+          class="w-full sm:w-64 px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 transition-colors duration-200"
+        >
+        <svg class="absolute right-3 top-2.5 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+      
+      <!-- Botão Nova Categoria -->
+      <a href="{% url 'create_category' %}" class="inline-flex items-center justify-center px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm hover:shadow-md text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
         </svg>
-        Nova Categoria
-      </button>
+        <span class="hidden sm:inline">Nova Categoria</span>
+        <span class="sm:hidden">Nova</span>
+      </a>
     </div>
   </div>
 
-  <!-- Stats Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <!-- Card de Estatísticas Simplificado -->
+  <div class="grid grid-cols-1 gap-3 mb-4">
     <!-- Total de Categorias -->
-    <div class="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm p-6">
-      <div class="flex items-center">
-        <div class="w-12 h-12 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
-          <svg class="w-6 h-6 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white dark:bg-neutral-800 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-neutral-600 dark:text-neutral-400">Total de Categorias</p>
+          <p class="text-lg font-bold text-neutral-900 dark:text-white">
+            {% if categories|length == 0 %}
+              Nenhuma categoria
+            {% elif categories|length == 1 %}
+              1 categoria
+            {% else %}
+              {{ categories|length }} categorias
+            {% endif %}
+          </p>
+        </div>
+        <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+          <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
           </svg>
         </div>
-        <div class="ml-4">
-          <p class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Total de Categorias</p>
-          <p class="text-2xl font-bold text-neutral-900 dark:text-white">{{ categories|length }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Categorias Ativas -->
-    <div class="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm p-6">
-      <div class="flex items-center">
-        <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-          <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-        </div>
-        <div class="ml-4">
-          <p class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Categorias Ativas</p>
-          <p class="text-2xl font-bold text-neutral-900 dark:text-white">{{ categories|length }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Produtos por Categoria -->
-    <div class="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm p-6">
-      <div class="flex items-center">
-        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-          <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-          </svg>
-        </div>
-        <div class="ml-4">
-          <p class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Produtos por Categoria</p>
-          <p class="text-2xl font-bold text-neutral-900 dark:text-white">12</p>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- Categories Table Card -->
-  <div class="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden">
-    <!-- Card Header -->
-    <div class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-700">
-      <h3 class="text-lg font-semibold text-neutral-900 dark:text-white">Lista de Categorias</h3>
+  <!-- Conteúdo Principal com Altura Fixa -->
+  <div class="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden flex-1 flex flex-col">
+    
+    <!-- Header da Tabela -->
+    <div class="px-4 md:px-6 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+      <h3 class="text-base font-semibold text-neutral-900 dark:text-white">Lista de Categorias</h3>
+      <span id="resultsInfo" class="text-xs text-neutral-600 dark:text-neutral-400"></span>
     </div>
 
-    <!-- Table Content -->
-    <div class="p-6">
+    <!-- Área de Conteúdo com Scroll -->
+    <div class="flex-1 overflow-hidden">
       {% if categories %}
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
+        <!-- Versão Desktop - Tabela -->
+        <div class="hidden md:block h-full overflow-y-auto custom-scrollbar">
+          <table class="w-full">
             <thead>
-              <tr class="bg-neutral-50 dark:bg-neutral-700">
-                <th class="px-6 py-4 text-left text-sm font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+              <tr class="bg-neutral-50 dark:bg-neutral-700 sticky top-0">
+                <th class="px-4 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
                   Categoria
                 </th>
-                <th class="px-6 py-4 text-left text-sm font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                <th class="px-4 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
                   Descrição
                 </th>
-                <th class="px-6 py-4 text-left text-sm font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                <th class="px-4 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                  Produtos
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
               {% for category in categories %}
-              <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150">
-                <td class="px-6 py-4">
+              <tr class="category-row hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150"
+                  data-name="{{ category.name|lower }}"
+                  data-description="{{ category.description|default:''|lower }}"
+                  data-id="{{ category.id }}">
+                <td class="px-4 py-3">
                   <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-neutral-100 dark:bg-neutral-600 rounded-lg flex items-center justify-center">
-                      <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      {% if category.image_url %}
+                        <img src="{{ category.image_url }}" alt="{{ category.name }}" class="w-8 h-8 rounded-lg">
+                      {% else %}
+                      <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                       </svg>
+                      {% endif %}
                     </div>
-                    <div>
-                      <p class="text-sm font-medium text-neutral-900 dark:text-white">{{ category.name }}</p>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-sm font-medium text-neutral-900 dark:text-white truncate" title="{{ category.name }}">{{ category.name }}</p>
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4">
-                  <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                <td class="px-4 py-3">
+                  <div class="max-w-xs">
                     {% if category.description %}
-                      {{ category.description }}
+                      <p class="text-sm text-neutral-600 dark:text-neutral-400 truncate" title="{{ category.description }}">{{ category.description }}</p>
                     {% else %}
                       <span class="text-neutral-400 dark:text-neutral-500 italic">Sem descrição</span>
                     {% endif %}
-                  </p>
+                  </div>
                 </td>
-                <td class="px-6 py-4">
-                  <div class="flex items-center space-x-3">
-                    <button class="inline-flex items-center justify-center px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all duration-200">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
+                    {% if category.products.count == 0 %}
+                      Nenhum produto
+                    {% elif category.products.count == 1 %}
+                      1 produto
+                    {% else %}
+                      {{ category.products.count }} produtos
+                    {% endif %}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <div class="flex items-center justify-end space-x-2">
+                    <!-- Botão Ver -->
+                    <a href="{% url 'get_category_by_id' category.id %}" class="inline-flex items-center justify-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded text-xs hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                      </svg>
+                      Ver
+                    </a>
+                    
+                    <!-- Botão Editar -->
+                    <a href="{% url 'edit_category' category.id %}" class="inline-flex items-center justify-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded text-xs hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                       </svg>
                       Editar
-                    </button>
-                    <button class="inline-flex items-center justify-center px-4 py-2 bg-red-600 dark:bg-red-500 text-white font-medium rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-all duration-200">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    </a>
+                    
+                    <!-- Botão Excluir -->
+                    <a href="{% url 'delete_category' category.id %}" class="inline-flex items-center justify-center px-3 py-1.5 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 font-medium rounded text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                       </svg>
                       Excluir
-                    </button>
+                    </a>
                   </div>
                 </td>
               </tr>
@@ -144,9 +176,70 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Versão Mobile - Cards -->
+        <div class="block md:hidden h-full overflow-y-auto custom-scrollbar p-4 space-y-3">
+          {% for category in categories %}
+          <div class="category-card bg-neutral-50 dark:bg-neutral-700 rounded-lg p-3 border border-neutral-200 dark:border-neutral-600"
+               data-name="{{ category.name|lower }}"
+               data-description="{{ category.description|default:''|lower }}"
+               data-id="{{ category.id }}">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center space-x-2 min-w-0 flex-1">
+                <div class="w-6 h-6 bg-white dark:bg-neutral-600 rounded flex items-center justify-center flex-shrink-0">
+                  <svg class="w-3 h-3 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                  </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate" title="{{ category.name }}">{{ category.name }}</h4>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-neutral-200 dark:bg-neutral-600 text-neutral-700 dark:text-neutral-300">
+                    {% if category.products.count == 0 %}
+                      Nenhum produto
+                    {% elif category.products.count == 1 %}
+                      1 produto
+                    {% else %}
+                      {{ category.products.count }} produtos
+                    {% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {% if category.description %}
+            <p class="text-xs text-neutral-600 dark:text-neutral-400 mb-3 line-clamp-2" title="{{ category.description }}">{{ category.description }}</p>
+            {% endif %}
+            <div class="flex items-center space-x-1">
+              <!-- Botão Ver -->
+              <a href="{% url 'get_category_by_id' category.id %}" class="flex-1 inline-flex items-center justify-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded text-xs hover:bg-white dark:hover:bg-neutral-600 transition-colors duration-200">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                Ver
+              </a>
+              
+              <!-- Botão Editar -->
+              <a href="{% url 'edit_category' category.id %}" class="flex-1 inline-flex items-center justify-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded text-xs hover:bg-white dark:hover:bg-neutral-600 transition-colors duration-200">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Editar
+              </a>
+              
+              <!-- Botão Excluir -->
+              <a href="{% url 'delete_category' category.id %}" class="flex-1 inline-flex items-center justify-center px-2 py-1 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 font-medium rounded text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                Excluir
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
       {% else %}
         <!-- Empty State -->
-        <div class="text-center py-12">
+        <div class="text-center py-12 flex flex-col items-center justify-center h-full">
           <div class="w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg class="w-8 h-8 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
@@ -154,8 +247,8 @@
           </div>
           <h3 class="text-lg font-medium text-neutral-900 dark:text-white mb-2">Nenhuma categoria encontrada</h3>
           <p class="text-neutral-600 dark:text-neutral-400 mb-6">Comece criando sua primeira categoria para organizar seus produtos</p>
-          <button class="inline-flex items-center justify-center px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm hover:shadow-md">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button class="inline-flex items-center justify-center px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm hover:shadow-md text-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
             </svg>
             Criar Primeira Categoria
@@ -163,6 +256,274 @@
         </div>
       {% endif %}
     </div>
+
+    <!-- Paginação -->
+    {% if categories %}
+    <div class="px-4 md:px-6 py-3 border-t border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <!-- Controle de Itens por Página -->
+      <div class="flex items-center justify-center sm:justify-start gap-2">
+        <span class="text-xs text-neutral-600 dark:text-neutral-400">Itens por página:</span>
+        <select id="itemsPerPage" class="text-sm border border-neutral-300 dark:border-neutral-600 rounded px-2 py-1 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="25">25</option>
+        </select>
+      </div>
+
+      <!-- Navegação de Páginas -->
+      <div class="flex items-center justify-center gap-2">
+        <button id="prevPage" class="inline-flex items-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Anterior
+        </button>
+        
+        <div id="pageNumbers" class="flex items-center gap-1"></div>
+        
+        <button id="nextPage" class="inline-flex items-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+          Próxima
+          <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
+
+<!-- JavaScript para Paginação -->
+<script>
+// Classe de Paginação para Categorias
+class CategoryPaginationManager {
+    constructor() {
+        this.currentPage = 1;
+        this.itemsPerPage = 5;
+        this.filteredItems = [];
+        this.allItems = [];
+        
+        this.initElements();
+        this.initEventListeners();
+        this.initialize();
+    }
+    
+    initElements() {
+        this.categoryRows = document.querySelectorAll('.category-row');
+        this.categoryCards = document.querySelectorAll('.category-card');
+        this.searchInput = document.getElementById('searchInput');
+        this.resultsInfo = document.getElementById('resultsInfo');
+        this.itemsPerPageSelect = document.getElementById('itemsPerPage');
+        this.prevButton = document.getElementById('prevPage');
+        this.nextButton = document.getElementById('nextPage');
+        this.pageNumbers = document.getElementById('pageNumbers');
+    }
+    
+    initEventListeners() {
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', (e) => {
+                this.filterCategories(e.target.value.toLowerCase());
+                this.currentPage = 1;
+                this.render();
+            });
+        }
+        
+        if (this.itemsPerPageSelect) {
+            this.itemsPerPageSelect.addEventListener('change', (e) => {
+                this.itemsPerPage = parseInt(e.target.value);
+                this.currentPage = 1;
+                this.render();
+            });
+        }
+        
+        if (this.prevButton) {
+            this.prevButton.addEventListener('click', () => {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.render();
+                }
+            });
+        }
+        
+        if (this.nextButton) {
+            this.nextButton.addEventListener('click', () => {
+                const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+                if (this.currentPage < totalPages) {
+                    this.currentPage++;
+                    this.render();
+                }
+            });
+        }
+    }
+    
+    initialize() {
+        this.allItems = Array.from(this.categoryRows.length > 0 ? this.categoryRows : this.categoryCards);
+        this.filteredItems = [...this.allItems];
+        this.render();
+    }
+    
+    filterCategories(searchTerm) {
+        if (searchTerm === '') {
+            this.filteredItems = [...this.allItems];
+        } else {
+            this.filteredItems = this.allItems.filter(item => {
+                const name = item.dataset.name || '';
+                const description = item.dataset.description || '';
+                const id = item.dataset.id || '';
+                
+                return name.includes(searchTerm) || 
+                       description.includes(searchTerm) || 
+                       id.includes(searchTerm);
+            });
+        }
+    }
+    
+    render() {
+        this.renderItems();
+        this.renderPagination();
+        this.updateResultsInfo();
+    }
+    
+    renderItems() {
+        const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        
+        // Ocultar todos os itens
+        this.allItems.forEach(item => item.style.display = 'none');
+        
+        // Mostrar apenas itens filtrados e paginados
+        this.filteredItems.slice(startIndex, endIndex).forEach(item => {
+            item.style.display = '';
+        });
+        
+        // Atualizar controles de navegação
+        if (this.prevButton) {
+            this.prevButton.disabled = this.currentPage === 1;
+        }
+        
+        if (this.nextButton) {
+            this.nextButton.disabled = this.currentPage === totalPages || totalPages === 0;
+        }
+    }
+    
+    renderPagination() {
+        if (!this.pageNumbers) return;
+        
+        const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+        this.pageNumbers.innerHTML = '';
+        
+        if (totalPages <= 1) return;
+        
+        // Mostrar máximo 5 números de página
+        let startPage = Math.max(1, this.currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            const pageButton = document.createElement('button');
+            pageButton.textContent = i;
+            pageButton.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${
+                i === this.currentPage 
+                    ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' 
+                    : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'
+            }`;
+            
+            pageButton.addEventListener('click', () => {
+                this.currentPage = i;
+                this.render();
+            });
+            
+            this.pageNumbers.appendChild(pageButton);
+        }
+    }
+    
+    updateResultsInfo() {
+        if (!this.resultsInfo) return;
+        
+        const totalItems = this.filteredItems.length;
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
+        const endIndex = Math.min(this.currentPage * this.itemsPerPage, totalItems);
+        
+        if (totalItems === 0) {
+            this.resultsInfo.textContent = 'Nenhuma categoria encontrada';
+        } else {
+            this.resultsInfo.textContent = `Mostrando ${startIndex}-${endIndex} de ${totalItems} categorias`;
+        }
+    }
+}
+
+// Inicializar quando o DOM estiver carregado
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar paginação se existirem categorias
+    const hasCategories = document.querySelectorAll('.category-row, .category-card').length > 0;
+    if (hasCategories) {
+        new CategoryPaginationManager();
+    }
+});
+</script>
+
+<style>
+/* Estilos customizados para scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: theme('colors.neutral.100');
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: theme('colors.neutral.300');
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.neutral.400');
+}
+
+/* Dark mode scrollbar */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: theme('colors.neutral.800');
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: theme('colors.neutral.600');
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.neutral.500');
+}
+
+/* Padding para mobile */
+.mobile-content-padding {
+    padding: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .mobile-content-padding {
+        padding: 1.5rem;
+    }
+}
+
+/* Classes para text truncation com múltiplas linhas */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+</style>
 {% endblock %}
