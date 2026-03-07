@@ -36,7 +36,7 @@ def upload_file_to_supabase(file_name: str, file) -> str:
     if not public_url:
         raise Exception("Não foi possível gerar a URL pública do arquivo")
 
-    return public_url
+    return public_url.rstrip('?')
 
 def delete_file_from_supabase(file_url: str) -> bool:
     """
