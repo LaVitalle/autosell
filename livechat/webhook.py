@@ -15,7 +15,8 @@ from utils.api_response import log_system_event
 @require_http_methods(["POST"])
 def webhook(request):
     client_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
-    if client_ip != settings.EVOLUTION_SERVER_IP:
+    allowed_ips = {settings.EVOLUTION_SERVER_IP, '127.0.0.1', '::1'}
+    if client_ip not in allowed_ips:
         log_system_event('WARNING', 'livechat.webhook', f'IP bloqueado: {client_ip}')
         return HttpResponseForbidden('Forbidden')
 
