@@ -16,14 +16,20 @@ from utils.api_response import log_system_event
 def webhook(request):
     client_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
     if client_ip != settings.EVOLUTION_SERVER_IP:
+        log_system_event('WARNING', 'livechat.webhook', f'IP bloqueado: {client_ip}')
         return HttpResponseForbidden('Forbidden')
 
     try:
         payload = json.loads(request.body)
     except (json.JSONDecodeError, UnicodeDecodeError):
+        log_system_event('ERROR', 'livechat.webhook', f'JSON invalido: {request.body[:500]}')
         return HttpResponse('Invalid JSON', status=400)
 
     event = payload.get('event')
+
+    # Log payload para debug
+    log_system_event('INFO', 'livechat.webhook',
+        f'Evento: {event} | Keys: {list(payload.keys())} | Data keys: {list(payload.get("data", {}).keys()) if isinstance(payload.get("data"), dict) else type(payload.get("data")).__name__}')
 
     if event == 'messages.upsert':
         _handle_messages_upsert(payload)
@@ -36,79 +42,118 @@ def webhook(request):
 def _handle_messages_upsert(payload):
     try:
         data = payload.get('data', {})
-        key = data.get('key', {})
-        remote_jid = key.get('remoteJid', '')
 
-        if not remote_jid or '@g.us' in remote_jid:
-            return
-
-        wpp_message_id = key.get('id')
-        if not wpp_message_id:
-            return
-
-        if ChatMessage.objects.filter(wpp_message_id=wpp_message_id).exists():
-            return
-
-        from_me = key.get('fromMe', False)
-        direction = 'out' if from_me else 'in'
-
-        message_data = data.get('message', {})
-        text = (
-            message_data.get('conversation') or
-            message_data.get('extendedTextMessage', {}).get('text') or
-            ''
-        )
-
-        if not text and message_data.get('imageMessage'):
-            text = message_data['imageMessage'].get('caption', '[Imagem]')
-        if not text:
-            text = '[Mensagem]'
-
-        phone = remote_jid.split('@')[0]
-
-        contact, _ = Contact.objects.get_or_create(
-            phone=phone,
-            defaults={'name': phone}
-        )
-
-        conversation, _ = Conversation.objects.get_or_create(
-            remote_jid=remote_jid,
-            defaults={'contact': contact}
-        )
-
-        msg_timestamp = data.get('messageTimestamp')
-        if msg_timestamp:
-            try:
-                ts = datetime.fromtimestamp(int(msg_timestamp), tz=timezone.utc)
-            except (ValueError, TypeError, OSError):
-                ts = datetime.now(tz=timezone.utc)
+        # Evolution API v2 pode enviar como array ou objeto direto
+        # Tentar extrair a mensagem do formato correto
+        if isinstance(data, list):
+            messages = data
+        elif isinstance(data, dict) and 'key' in data:
+            messages = [data]
+        elif isinstance(data, dict):
+            # Pode estar em data.messages, data.message, ou outro wrapper
+            messages = data.get('messages', data.get('message', [data]))
+            if isinstance(messages, dict):
+                messages = [messages]
         else:
-            ts = datetime.now(tz=timezone.utc)
+            log_system_event('WARNING', 'livechat.webhook.messages_upsert',
+                f'Formato data inesperado: {json.dumps(data)[:500]}')
+            return
 
-        status = 'read' if from_me else 'delivered'
-
-        ChatMessage.objects.create(
-            contact=contact,
-            conversation=conversation,
-            remote_jid=remote_jid,
-            wpp_message_id=wpp_message_id,
-            direction=direction,
-            msg_type='text',
-            content=text,
-            status=status,
-            timestamp=ts,
-        )
-
-        preview = text[:200] if text else ''
-        conversation.last_message_text = preview
-        conversation.last_message_at = ts
-        conversation.last_message_direction = direction
-        if direction == 'in':
-            conversation.unread_count += 1
-        conversation.save()
+        for msg_data in messages:
+            _process_single_message(msg_data)
 
     except Exception as e:
-        log_system_event('ERROR', 'livechat.webhook.messages_upsert', str(e))
+        log_system_event('ERROR', 'livechat.webhook.messages_upsert',
+            f'{type(e).__name__}: {e} | Payload: {json.dumps(payload)[:800]}')
+
+
+def _process_single_message(data):
+    key = data.get('key', {})
+    remote_jid = key.get('remoteJid', '')
+
+    if not remote_jid or '@g.us' in remote_jid:
+        return
+
+    wpp_message_id = key.get('id')
+    if not wpp_message_id:
+        return
+
+    if ChatMessage.objects.filter(wpp_message_id=wpp_message_id).exists():
+        return
+
+    from_me = key.get('fromMe', False)
+    direction = 'out' if from_me else 'in'
+
+    message_data = data.get('message', {})
+    if message_data is None:
+        message_data = {}
+
+    text = (
+        message_data.get('conversation') or
+        message_data.get('extendedTextMessage', {}).get('text') or
+        ''
+    )
+
+    if not text and message_data.get('imageMessage'):
+        text = message_data['imageMessage'].get('caption', '[Imagem]')
+    if not text and message_data.get('videoMessage'):
+        text = message_data['videoMessage'].get('caption', '[Video]')
+    if not text and message_data.get('audioMessage'):
+        text = '[Audio]'
+    if not text and message_data.get('documentMessage'):
+        text = message_data['documentMessage'].get('fileName', '[Documento]')
+    if not text and message_data.get('stickerMessage'):
+        text = '[Sticker]'
+    if not text and message_data.get('contactMessage'):
+        text = '[Contato]'
+    if not text and message_data.get('locationMessage'):
+        text = '[Localizacao]'
+    if not text:
+        text = '[Mensagem]'
+
+    phone = remote_jid.split('@')[0]
+
+    contact, _ = Contact.objects.get_or_create(
+        phone=phone,
+        defaults={'name': phone}
+    )
+
+    conversation, _ = Conversation.objects.get_or_create(
+        remote_jid=remote_jid,
+        defaults={'contact': contact}
+    )
+
+    msg_timestamp = data.get('messageTimestamp')
+    if msg_timestamp:
+        try:
+            ts_val = int(str(msg_timestamp))
+            ts = datetime.fromtimestamp(ts_val, tz=timezone.utc)
+        except (ValueError, TypeError, OSError):
+            ts = datetime.now(tz=timezone.utc)
+    else:
+        ts = datetime.now(tz=timezone.utc)
+
+    status = 'read' if from_me else 'delivered'
+
+    ChatMessage.objects.create(
+        contact=contact,
+        conversation=conversation,
+        remote_jid=remote_jid,
+        wpp_message_id=wpp_message_id,
+        direction=direction,
+        msg_type='text',
+        content=text,
+        status=status,
+        timestamp=ts,
+    )
+
+    preview = text[:200] if text else ''
+    conversation.last_message_text = preview
+    conversation.last_message_at = ts
+    conversation.last_message_direction = direction
+    if direction == 'in':
+        conversation.unread_count += 1
+    conversation.save()
 
 
 def _handle_messages_update(payload):
@@ -134,4 +179,5 @@ def _handle_messages_update(payload):
             ChatMessage.objects.filter(wpp_message_id=wpp_message_id).update(status=new_status)
 
     except Exception as e:
-        log_system_event('ERROR', 'livechat.webhook.messages_update', str(e))
+        log_system_event('ERROR', 'livechat.webhook.messages_update',
+            f'{type(e).__name__}: {e}')
