@@ -684,9 +684,48 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Inicializar o seletor de produtos
   ProductSelector.init();
-  
+
   // Tornar disponível globalmente
   window.ProductSelector = ProductSelector;
+
+  // AJAX form submit
+  const form = document.querySelector('form');
+  const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+
+  if (form) {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      setButtonLoading(submitBtn, true, 'Criando...');
+      const formData = new FormData(form);
+
+      const { ok, data } = await apiRequest('/categories/api/create/', {
+        method: 'POST',
+        body: formData,
+        isFormData: true,
+      });
+
+      setButtonLoading(submitBtn, false);
+
+      if (ok && data.success) {
+        showToast('Categoria criada com sucesso!', 'success');
+        setTimeout(() => window.location.href = '/categories/', 800);
+      } else if (data.errors) {
+        Object.entries(data.errors).forEach(([field, errors]) => {
+          const input = document.getElementById(`id_${field}`);
+          if (input) {
+            const errorDiv = document.createElement('p');
+            errorDiv.className = 'text-red-600 dark:text-red-400 text-xs mt-1 flex items-center error-message';
+            errorDiv.textContent = errors[0];
+            input.parentNode.appendChild(errorDiv);
+          }
+        });
+        showToast('Corrija os erros no formulário', 'error');
+      } else {
+        showToast('Erro ao criar categoria', 'error');
+      }
+    });
+  }
 });
 </script>
 {% endblock %}

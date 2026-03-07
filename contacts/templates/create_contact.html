@@ -137,57 +137,60 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Phone input formatting
     const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
-    
+
     if (phoneInput) {
         phoneInput.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
-            
-            // Format as (XX) XXXXX-XXXX
             if (value.length > 0) {
-                if (value.length <= 2) {
-                    value = `(${value}`;
-                } else if (value.length <= 7) {
-                    value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
-                } else if (value.length <= 11) {
-                    value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
-                } else {
-                    value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7, 11)}`;
-                }
+                if (value.length <= 2) value = `(${value}`;
+                else if (value.length <= 7) value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                else value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7, 11)}`;
             }
-            
             e.target.value = value;
         });
-        
-        // Allow only numbers and formatting characters
         phoneInput.addEventListener('keypress', function(e) {
-            const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'];
-            const isNumber = /[0-9]/.test(e.key);
-            
-            if (!isNumber && !allowedKeys.includes(e.key)) {
-                e.preventDefault();
-            }
+            if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault();
         });
     }
-    
-    // Form validation feedback
+
     const form = document.querySelector('form');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const nameInput = document.getElementById('{{ form.name.id_for_label }}');
-            const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
-            
-            // Remove previous validation states
-            [nameInput, phoneInput].forEach(input => {
-                if (input) {
-                    input.classList.remove('border-red-300', 'dark:border-red-600', 'focus:ring-red-500', 'dark:focus:ring-red-400');
-                    input.classList.add('border-neutral-300', 'dark:border-neutral-600', 'focus:ring-neutral-500', 'dark:focus:ring-neutral-400');
-                }
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.error-message').forEach(el => el.remove());
+
+        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+        let isValid = true;
+        if (!nameInput.value.trim() || nameInput.value.trim().length < 3) { isValid = false; showError(nameInput, 'O nome deve ter pelo menos 3 caracteres.'); }
+        if (!phoneInput.value.trim()) { isValid = false; showError(phoneInput, 'O telefone é obrigatório.'); }
+        if (!isValid) return;
+
+        setButtonLoading(submitBtn, true, 'Criando...');
+        const formData = new FormData(form);
+        const { ok, data } = await apiRequest('/contacts/api/create/', { method: 'POST', body: formData, isFormData: true });
+        setButtonLoading(submitBtn, false);
+
+        if (ok && data.success) {
+            showToast('Contato criado com sucesso!', 'success');
+            setTimeout(() => window.location.href = '/contacts/', 800);
+        } else if (data.errors) {
+            Object.entries(data.errors).forEach(([field, errors]) => {
+                const input = document.getElementById(`id_${field}`);
+                if (input) showError(input, errors[0]);
             });
-            
-            // Real-time validation can be added here
-        });
+            showToast('Corrija os erros no formulário', 'error');
+        } else {
+            showToast('Erro ao criar contato', 'error');
+        }
+    });
+
+    function showError(input, message) {
+        const errorDiv = document.createElement('p');
+        errorDiv.className = 'text-red-600 dark:text-red-400 text-xs mt-1 flex items-center error-message';
+        errorDiv.innerHTML = `<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>${message}`;
+        input.parentNode.appendChild(errorDiv);
     }
 });
 </script>

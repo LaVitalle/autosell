@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 import uuid
 from utils.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
 from .models import Category
@@ -9,7 +10,10 @@ from products.models import Product
 # Create your views here.
 @login_required
 def get_all_categories(request):
-    categories = Category.objects.all()
+    categories_list = Category.objects.all()
+    paginator = Paginator(categories_list, 12)
+    page_number = request.GET.get('page')
+    categories = paginator.get_page(page_number)
     return render(request, 'categories.html', {'categories': categories})
 
 @login_required

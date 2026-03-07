@@ -6,8 +6,9 @@ from categories.models import Category
 from .models import Message
 from .forms import MessageForm
 from utils.evoapi import send_media_message, send_text_message
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
 #message = TextMessage(
 #    number="5511999999999",
@@ -73,36 +74,39 @@ def messages_manager(request):
             elif message.type == 'category':
                 category = Category.objects.get(id=message.category.id)
                 if category:
-                    if category.products.count() > 0:
-                        try:
-                            for product in category.products.all():
+                    products = category.products.all()
+                    if products.count() > 0:
+                        total = products.count()
+                        failed_count = 0
+                        for product in products:
+                            try:
                                 if product.image_url:
-                                    try:
-                                        result = send_media_message(message.contact.phone, 'image', 'image/png', f'*{product.name}*\n{('_' + product.description + '_\n' if product.description else '')}\n\n{('*Restam:* ' + str(product.stock_quantity) + ' unidades\n' if product.stock_active else '')}*Preço:* R$ {product.price}', product.image_url, f'{product.name}.png')
-                                    except Exception as e:
-                                        print(e)
-                                        continue
+                                    result = send_media_message(message.contact.phone, 'image', 'image/png', f'*{product.name}*\n{('_' + product.description + '_\n' if product.description else '')}\n\n{('*Restam:* ' + str(product.stock_quantity) + ' unidades\n' if product.stock_active else '')}*Preço:* R$ {product.price}', product.image_url, f'{product.name}.png')
                                 else:
-                                    try:
-                                        result = send_text_message(message.contact.phone, f'*{product.name}*\n{('_' + product.description + '_\n' if product.description else '')}\n\n{('*Restam:* ' + str(product.stock_quantity) + ' unidades\n' if product.stock_active else '')}*Preço:* R$ {product.price}')
-                                    except Exception as e:
-                                        print(e)
-                                        continue
+                                    result = send_text_message(message.contact.phone, f'*{product.name}*\n{('_' + product.description + '_\n' if product.description else '')}\n\n{('*Restam:* ' + str(product.stock_quantity) + ' unidades\n' if product.stock_active else '')}*Preço:* R$ {product.price}')
+                                if not result:
+                                    failed_count += 1
+                            except Exception as e:
+                                print(e)
+                                failed_count += 1
+                        if failed_count == 0:
                             message.status = 'sent'
-                            message.save()
-                            context['form'] = MessageForm()
-                        except Exception as e:
+                        elif failed_count == total:
                             message.status = 'failed'
-                            message.save()
-                            context['form'] = MessageForm()
                             context['request_status'] = 'failed'
-                            context['request_message'] = 'Erro ao enviar mensagem de mídia ou texto'
+                            context['request_message'] = 'Falha ao enviar todas as mensagens da categoria'
+                        else:
+                            message.status = 'sent'
+                            context['request_status'] = 'warning'
+                            context['request_message'] = f'{failed_count} de {total} produtos falharam ao enviar'
+                        message.save()
+                        context['form'] = MessageForm()
                     else:
                         message.status = 'failed'
                         message.save()
                         context['form'] = MessageForm()
                         context['request_status'] = 'failed'
-                        context['request_message'] = 'Categoria não encontrada'
+                        context['request_message'] = 'Categoria sem produtos'
                 else:
                     message.status = 'failed'
                     message.save()
@@ -131,6 +135,9 @@ def get_stats():
 
 @csrf_exempt
 def hook(request):
+    client_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+    if client_ip != settings.EVOLUTION_SERVER_IP:
+        return HttpResponseForbidden('Forbidden')
     body_string = request.body.decode('utf-8')
     send_text_message('5545998231771', str(body_string))
     return HttpResponse('OK')

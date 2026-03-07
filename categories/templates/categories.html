@@ -101,7 +101,7 @@
                 </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
+            <tbody id="categoriesTableBody" class="divide-y divide-neutral-200 dark:divide-neutral-700">
               {% for category in categories %}
               <tr class="category-row hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150"
                   data-name="{{ category.name|lower }}"
@@ -178,7 +178,7 @@
         </div>
 
         <!-- Versão Mobile - Cards -->
-        <div class="block md:hidden h-full overflow-y-auto custom-scrollbar p-4 space-y-3">
+        <div id="mobileCardsContainer" class="block md:hidden h-full overflow-y-auto custom-scrollbar p-4 space-y-3">
           {% for category in categories %}
           <div class="category-card bg-neutral-50 dark:bg-neutral-700 rounded-lg p-3 border border-neutral-200 dark:border-neutral-600"
                data-name="{{ category.name|lower }}"
@@ -293,176 +293,138 @@
   </div>
 </div>
 
-<!-- JavaScript para Paginação -->
 <script>
-// Classe de Paginação para Categorias
-class CategoryPaginationManager {
-    constructor() {
-        this.currentPage = 1;
-        this.itemsPerPage = 5;
-        this.filteredItems = [];
-        this.allItems = [];
-        
-        this.initElements();
-        this.initEventListeners();
-        this.initialize();
-    }
-    
-    initElements() {
-        this.categoryRows = document.querySelectorAll('.category-row');
-        this.categoryCards = document.querySelectorAll('.category-card');
-        this.searchInput = document.getElementById('searchInput');
-        this.resultsInfo = document.getElementById('resultsInfo');
-        this.itemsPerPageSelect = document.getElementById('itemsPerPage');
-        this.prevButton = document.getElementById('prevPage');
-        this.nextButton = document.getElementById('nextPage');
-        this.pageNumbers = document.getElementById('pageNumbers');
-    }
-    
-    initEventListeners() {
-        if (this.searchInput) {
-            this.searchInput.addEventListener('input', (e) => {
-                this.filterCategories(e.target.value.toLowerCase());
-                this.currentPage = 1;
-                this.render();
-            });
-        }
-        
-        if (this.itemsPerPageSelect) {
-            this.itemsPerPageSelect.addEventListener('change', (e) => {
-                this.itemsPerPage = parseInt(e.target.value);
-                this.currentPage = 1;
-                this.render();
-            });
-        }
-        
-        if (this.prevButton) {
-            this.prevButton.addEventListener('click', () => {
-                if (this.currentPage > 1) {
-                    this.currentPage--;
-                    this.render();
-                }
-            });
-        }
-        
-        if (this.nextButton) {
-            this.nextButton.addEventListener('click', () => {
-                const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
-                if (this.currentPage < totalPages) {
-                    this.currentPage++;
-                    this.render();
-                }
-            });
-        }
-    }
-    
-    initialize() {
-        this.allItems = Array.from(this.categoryRows.length > 0 ? this.categoryRows : this.categoryCards);
-        this.filteredItems = [...this.allItems];
-        this.render();
-    }
-    
-    filterCategories(searchTerm) {
-        if (searchTerm === '') {
-            this.filteredItems = [...this.allItems];
-        } else {
-            this.filteredItems = this.allItems.filter(item => {
-                const name = item.dataset.name || '';
-                const description = item.dataset.description || '';
-                const id = item.dataset.id || '';
-                
-                return name.includes(searchTerm) || 
-                       description.includes(searchTerm) || 
-                       id.includes(searchTerm);
-            });
-        }
-    }
-    
-    render() {
-        this.renderItems();
-        this.renderPagination();
-        this.updateResultsInfo();
-    }
-    
-    renderItems() {
-        const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
-        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-        const endIndex = startIndex + this.itemsPerPage;
-        
-        // Ocultar todos os itens
-        this.allItems.forEach(item => item.style.display = 'none');
-        
-        // Mostrar apenas itens filtrados e paginados
-        this.filteredItems.slice(startIndex, endIndex).forEach(item => {
-            item.style.display = '';
-        });
-        
-        // Atualizar controles de navegação
-        if (this.prevButton) {
-            this.prevButton.disabled = this.currentPage === 1;
-        }
-        
-        if (this.nextButton) {
-            this.nextButton.disabled = this.currentPage === totalPages || totalPages === 0;
-        }
-    }
-    
-    renderPagination() {
-        if (!this.pageNumbers) return;
-        
-        const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
-        this.pageNumbers.innerHTML = '';
-        
-        if (totalPages <= 1) return;
-        
-        // Mostrar máximo 5 números de página
-        let startPage = Math.max(1, this.currentPage - 2);
-        let endPage = Math.min(totalPages, startPage + 4);
-        
-        if (endPage - startPage < 4) {
-            startPage = Math.max(1, endPage - 4);
-        }
-        
-        for (let i = startPage; i <= endPage; i++) {
-            const pageButton = document.createElement('button');
-            pageButton.textContent = i;
-            pageButton.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${
-                i === this.currentPage 
-                    ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' 
-                    : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'
-            }`;
-            
-            pageButton.addEventListener('click', () => {
-                this.currentPage = i;
-                this.render();
-            });
-            
-            this.pageNumbers.appendChild(pageButton);
-        }
-    }
-    
-    updateResultsInfo() {
-        if (!this.resultsInfo) return;
-        
-        const totalItems = this.filteredItems.length;
-        const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
-        const endIndex = Math.min(this.currentPage * this.itemsPerPage, totalItems);
-        
-        if (totalItems === 0) {
-            this.resultsInfo.textContent = 'Nenhuma categoria encontrada';
-        } else {
-            this.resultsInfo.textContent = `Mostrando ${startIndex}-${endIndex} de ${totalItems} categorias`;
-        }
-    }
-}
-
-// Inicializar quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar paginação se existirem categorias
-    const hasCategories = document.querySelectorAll('.category-row, .category-card').length > 0;
-    if (hasCategories) {
-        new CategoryPaginationManager();
+    let currentPage = 1;
+    let itemsPerPage = 5;
+    let searchTimeout = null;
+    const searchInput = document.getElementById('searchInput');
+    const resultsInfo = document.getElementById('resultsInfo');
+    const itemsPerPageSelect = document.getElementById('itemsPerPage');
+    const prevButton = document.getElementById('prevPage');
+    const nextButton = document.getElementById('nextPage');
+    const pageNumbers = document.getElementById('pageNumbers');
+
+    loadCategories();
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => { currentPage = 1; loadCategories(); }, 300);
+        });
     }
+    if (itemsPerPageSelect) itemsPerPageSelect.addEventListener('change', function() { itemsPerPage = parseInt(this.value); currentPage = 1; loadCategories(); });
+    if (prevButton) prevButton.addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadCategories(); } });
+    if (nextButton) nextButton.addEventListener('click', () => { currentPage++; loadCategories(); });
+
+    async function loadCategories() {
+        const search = searchInput ? searchInput.value.trim() : '';
+        const { ok, data } = await apiRequest(`/categories/api/?page=${currentPage}&per_page=${itemsPerPage}&search=${encodeURIComponent(search)}`);
+        if (!ok) return;
+        renderTable(data.categories);
+        renderCards(data.categories);
+        updatePagination(data);
+    }
+
+    function renderTable(categories) {
+        const tbody = document.getElementById('categoriesTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = categories.map(c => `
+            <tr class="category-row hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150" data-id="${c.id}">
+                <td class="px-4 py-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-600 rounded-lg flex items-center justify-center mr-3">
+                            ${c.image_url
+                                ? `<img src="${c.image_url}" alt="${c.name}" class="w-8 h-8 rounded-lg object-cover">`
+                                : `<svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>`}
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-neutral-900 dark:text-white">${c.name}</div>
+                            <div class="text-xs text-neutral-500 dark:text-neutral-400">${c.description || ''}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-3"><span class="text-sm text-neutral-900 dark:text-white">${c.products_count} produtos</span></td>
+                <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end space-x-1">
+                        <a href="/categories/${c.id}" class="inline-flex items-center px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">Ver</a>
+                        <a href="/categories/edit/${c.id}" class="inline-flex items-center px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">Editar</a>
+                        <button onclick="deleteCategory(${c.id}, '${c.name.replace(/'/g, "\\'")}')" class="inline-flex items-center px-2 py-1.5 border border-red-300 dark:border-red-600 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Excluir</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderCards(categories) {
+        const container = document.getElementById('mobileCardsContainer');
+        if (!container) return;
+        container.innerHTML = categories.map(c => `
+            <div class="category-card p-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors" data-id="${c.id}">
+                <div class="flex items-start space-x-3">
+                    <div class="w-10 h-10 bg-neutral-100 dark:bg-neutral-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        ${c.image_url
+                            ? `<img src="${c.image_url}" alt="${c.name}" class="w-10 h-10 rounded-lg object-cover">`
+                            : `<svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>`}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">${c.name}</h4>
+                        <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">${c.products_count} produtos</p>
+                        <div class="flex items-center mt-3 space-x-2">
+                            <a href="/categories/${c.id}" class="inline-flex items-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800">Ver</a>
+                            <a href="/categories/edit/${c.id}" class="inline-flex items-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800">Editar</a>
+                            <button onclick="deleteCategory(${c.id}, '${c.name.replace(/'/g, "\\'")}')" class="inline-flex items-center px-2 py-1 border border-red-300 dark:border-red-600 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800">Excluir</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function updatePagination(data) {
+        if (resultsInfo) {
+            if (data.total === 0) resultsInfo.textContent = 'Nenhuma categoria encontrada';
+            else {
+                const start = (data.page - 1) * data.per_page + 1;
+                const end = Math.min(data.page * data.per_page, data.total);
+                resultsInfo.textContent = `Mostrando ${start}-${end} de ${data.total} categorias`;
+            }
+        }
+        if (prevButton) prevButton.disabled = data.page <= 1;
+        if (nextButton) nextButton.disabled = data.page >= data.total_pages;
+        if (pageNumbers) {
+            pageNumbers.innerHTML = '';
+            if (data.total_pages > 1) {
+                let startPage = Math.max(1, data.page - 2);
+                let endPage = Math.min(data.total_pages, startPage + 4);
+                if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+                for (let i = startPage; i <= endPage; i++) {
+                    const btn = document.createElement('button');
+                    btn.textContent = i;
+                    btn.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${i === data.page ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'}`;
+                    btn.addEventListener('click', () => { currentPage = i; loadCategories(); });
+                    pageNumbers.appendChild(btn);
+                }
+            }
+        }
+    }
+
+    window.deleteCategory = async function(id, name) {
+        const confirmed = await confirmModal({
+            title: 'Excluir Categoria',
+            message: `Tem certeza que deseja excluir "${name}"? Esta ação não pode ser desfeita.`,
+            confirmText: 'Excluir',
+        });
+        if (!confirmed) return;
+        const { ok, data } = await apiRequest(`/categories/api/${id}/delete/`, { method: 'POST' });
+        if (ok && data.success) {
+            const row = document.querySelector(`tr[data-id="${id}"], .category-card[data-id="${id}"]`);
+            if (row) { row.classList.add('row-removing'); row.addEventListener('animationend', () => loadCategories()); }
+            else loadCategories();
+            showToast('Categoria excluída com sucesso', 'success');
+        } else { showToast(data.error || 'Erro ao excluir categoria', 'error'); }
+    };
 });
 </script>
 

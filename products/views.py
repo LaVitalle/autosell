@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from .models import Product
 from .forms import ProductForm
 from utils.supabase_storage import upload_file_to_supabase, delete_file_from_supabase
@@ -8,7 +9,10 @@ import uuid
 # Create your views here.
 @login_required
 def get_all_products(request):
-    products = Product.objects.all()
+    products_list = Product.objects.all()
+    paginator = Paginator(products_list, 12)
+    page_number = request.GET.get('page')
+    products = paginator.get_page(page_number)
     context = {
         'products': products,
     }

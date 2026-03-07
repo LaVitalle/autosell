@@ -115,7 +115,7 @@
                     </div>
                 {% endif %}
 
-                <form method="post" class="space-y-4" id="messageForm">
+                <form class="space-y-4" id="messageForm">
                     {% csrf_token %}
                     
                     <!-- Seletor de Contato -->
@@ -349,14 +349,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Elements
     const sendTypeSelect = document.getElementById('id_send_type');
     const productField = document.getElementById('product-field');
     const categoryField = document.getElementById('category-field');
     const productSelect = document.getElementById('id_product');
     const categorySelect = document.getElementById('id_category');
-    
-    // Search and pagination elements
     const searchInput = document.getElementById('messageSearch');
     const messagesContainer = document.getElementById('messagesContainer');
     const itemsPerPageSelect = document.getElementById('itemsPerPage');
@@ -364,191 +361,141 @@ document.addEventListener('DOMContentLoaded', function() {
     const nextButton = document.getElementById('nextPage');
     const pageNumbers = document.getElementById('pageNumbers');
     const resultsInfo = document.getElementById('resultsInfo');
-    
-    // Initialize form state
+
     toggleSendTypeFields();
-    
-    // Add event listener for form toggle
-    if (sendTypeSelect) {
-        sendTypeSelect.addEventListener('change', toggleSendTypeFields);
+    if (sendTypeSelect) sendTypeSelect.addEventListener('change', toggleSendTypeFields);
+
+    // AJAX form submit for sending messages
+    const form = document.getElementById('messageForm');
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            setButtonLoading(submitBtn, true, 'Enviando...');
+            const formData = new FormData(form);
+
+            const { ok, data } = await apiRequest('/messages/api/send/', {
+                method: 'POST',
+                body: formData,
+                isFormData: true,
+            });
+
+            setButtonLoading(submitBtn, false);
+
+            if (ok && data.success) {
+                if (data.detail) {
+                    showToast(data.detail, data.failed_count > 0 ? 'warning' : 'success');
+                } else {
+                    showToast('Mensagem enviada com sucesso!', 'success');
+                }
+
+                // Add message to the top of the list dynamically
+                if (data.message && messagesContainer) {
+                    const typeLabel = data.message.type === 'product' ? 'Produto' : 'Categoria';
+                    const typeColor = data.message.type === 'product'
+                        ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400'
+                        : 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400';
+
+                    const newItem = document.createElement('div');
+                    newItem.className = 'message-item bg-neutral-50 dark:bg-neutral-700 rounded-lg p-3 border border-neutral-200 dark:border-neutral-600 toast-enter';
+                    newItem.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">${data.message.contact}</h4>
+                                    <span class="text-xs text-neutral-500 dark:text-neutral-400 ml-2 flex-shrink-0">${data.message.sent_at || 'Agora'}</span>
+                                </div>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${typeColor}">${typeLabel}</span>
+                                    <span class="text-xs text-neutral-600 dark:text-neutral-400 truncate max-w-32">${data.message.content || ''}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    messagesContainer.insertBefore(newItem, messagesContainer.firstChild);
+                }
+
+                // Reset form
+                form.reset();
+                toggleSendTypeFields();
+            } else if (data.errors) {
+                const firstError = Object.values(data.errors)[0];
+                showToast(Array.isArray(firstError) ? firstError[0] : firstError, 'error');
+            } else {
+                showToast(data.error || 'Erro ao enviar mensagem', 'error');
+            }
+        });
     }
-    
-    // Message Pagination System
+
+    // Message Pagination (client-side for existing messages)
     class MessagePagination {
         constructor() {
             this.currentPage = 1;
             this.itemsPerPage = 5;
             this.allMessages = Array.from(document.querySelectorAll('.message-item'));
             this.filteredMessages = [...this.allMessages];
-            
             this.initEventListeners();
             this.render();
         }
-        
         initEventListeners() {
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    this.filterMessages(e.target.value.toLowerCase());
-                    this.currentPage = 1;
-                    this.render();
-                });
-            }
-            
-            if (itemsPerPageSelect) {
-                itemsPerPageSelect.addEventListener('change', (e) => {
-                    this.itemsPerPage = parseInt(e.target.value);
-                    this.currentPage = 1;
-                    this.render();
-                });
-            }
-            
-            if (prevButton) {
-                prevButton.addEventListener('click', () => {
-                    if (this.currentPage > 1) {
-                        this.currentPage--;
-                        this.render();
-                    }
-                });
-            }
-            
-            if (nextButton) {
-                nextButton.addEventListener('click', () => {
-                    const totalPages = Math.ceil(this.filteredMessages.length / this.itemsPerPage);
-                    if (this.currentPage < totalPages) {
-                        this.currentPage++;
-                        this.render();
-                    }
-                });
-            }
+            if (searchInput) searchInput.addEventListener('input', (e) => { this.filterMessages(e.target.value.toLowerCase()); this.currentPage = 1; this.render(); });
+            if (itemsPerPageSelect) itemsPerPageSelect.addEventListener('change', (e) => { this.itemsPerPage = parseInt(e.target.value); this.currentPage = 1; this.render(); });
+            if (prevButton) prevButton.addEventListener('click', () => { if (this.currentPage > 1) { this.currentPage--; this.render(); } });
+            if (nextButton) nextButton.addEventListener('click', () => { const tp = Math.ceil(this.filteredMessages.length / this.itemsPerPage); if (this.currentPage < tp) { this.currentPage++; this.render(); } });
         }
-        
-        filterMessages(searchTerm) {
-            if (searchTerm === '') {
-                this.filteredMessages = [...this.allMessages];
-            } else {
-                this.filteredMessages = this.allMessages.filter(message => {
-                    const contact = message.dataset.contact || '';
-                    const type = message.dataset.type || '';
-                    const content = message.dataset.content || '';
-                    
-                    return contact.includes(searchTerm) || 
-                           type.includes(searchTerm) || 
-                           content.includes(searchTerm);
-                });
-            }
-        }
-        
-        render() {
-            this.renderMessages();
-            this.renderPagination();
-            this.updateResultsInfo();
-        }
-        
-        renderMessages() {
-            const totalPages = Math.ceil(this.filteredMessages.length / this.itemsPerPage);
-            const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-            const endIndex = startIndex + this.itemsPerPage;
-            
-            // Hide all messages
-            this.allMessages.forEach(message => message.style.display = 'none');
-            
-            // Show filtered and paginated messages
-            this.filteredMessages.slice(startIndex, endIndex).forEach(message => {
-                message.style.display = '';
+        filterMessages(term) {
+            this.filteredMessages = term === '' ? [...this.allMessages] : this.allMessages.filter(m => {
+                return (m.dataset.contact||'').includes(term) || (m.dataset.type||'').includes(term) || (m.dataset.content||'').includes(term);
             });
-            
-            // Update navigation buttons
-            if (prevButton) {
-                prevButton.disabled = this.currentPage === 1;
-            }
-            
-            if (nextButton) {
-                nextButton.disabled = this.currentPage === totalPages || totalPages === 0;
-            }
         }
-        
-        renderPagination() {
-            if (!pageNumbers) return;
-            
-            const totalPages = Math.ceil(this.filteredMessages.length / this.itemsPerPage);
-            pageNumbers.innerHTML = '';
-            
-            if (totalPages <= 1) return;
-            
-            // Show maximum 5 page numbers
-            let startPage = Math.max(1, this.currentPage - 2);
-            let endPage = Math.min(totalPages, startPage + 4);
-            
-            if (endPage - startPage < 4) {
-                startPage = Math.max(1, endPage - 4);
+        render() {
+            const tp = Math.ceil(this.filteredMessages.length / this.itemsPerPage);
+            const si = (this.currentPage - 1) * this.itemsPerPage;
+            this.allMessages.forEach(m => m.style.display = 'none');
+            this.filteredMessages.slice(si, si + this.itemsPerPage).forEach(m => m.style.display = '');
+            if (prevButton) prevButton.disabled = this.currentPage === 1;
+            if (nextButton) nextButton.disabled = this.currentPage >= tp || tp === 0;
+            if (pageNumbers) {
+                pageNumbers.innerHTML = '';
+                if (tp > 1) {
+                    let s = Math.max(1, this.currentPage - 2), e = Math.min(tp, s + 4);
+                    if (e - s < 4) s = Math.max(1, e - 4);
+                    for (let i = s; i <= e; i++) {
+                        const b = document.createElement('button');
+                        b.textContent = i;
+                        b.className = `px-3 py-1.5 text-xs font-medium rounded transition-colors ${i === this.currentPage ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800'}`;
+                        b.addEventListener('click', () => { this.currentPage = i; this.render(); });
+                        pageNumbers.appendChild(b);
+                    }
+                }
             }
-            
-            for (let i = startPage; i <= endPage; i++) {
-                const pageButton = document.createElement('button');
-                pageButton.textContent = i;
-                pageButton.className = `px-3 py-1.5 text-xs font-medium rounded transition-colors duration-200 ${
-                    i === this.currentPage 
-                        ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' 
-                        : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'
-                }`;
-                
-                pageButton.addEventListener('click', () => {
-                    this.currentPage = i;
-                    this.render();
-                });
-                
-                pageNumbers.appendChild(pageButton);
-            }
-        }
-        
-        updateResultsInfo() {
-            if (!resultsInfo) return;
-            
-            const totalItems = this.filteredMessages.length;
-            const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
-            const endIndex = Math.min(this.currentPage * this.itemsPerPage, totalItems);
-            
-            if (totalItems === 0) {
-                resultsInfo.textContent = 'Nenhuma mensagem encontrada';
-            } else {
-                resultsInfo.textContent = `Mostrando ${startIndex}-${endIndex} de ${totalItems} mensagens`;
+            if (resultsInfo) {
+                const t = this.filteredMessages.length;
+                resultsInfo.textContent = t === 0 ? 'Nenhuma mensagem encontrada' : `Mostrando ${si+1}-${Math.min(si+this.itemsPerPage, t)} de ${t} mensagens`;
             }
         }
     }
-    
-    // Initialize pagination if messages exist
-    if (messagesContainer && document.querySelectorAll('.message-item').length > 0) {
-        new MessagePagination();
-    }
-    
-    // Form toggle function
+
+    if (messagesContainer && document.querySelectorAll('.message-item').length > 0) new MessagePagination();
+
     function toggleSendTypeFields() {
-        const selectedType = sendTypeSelect.value;
-        
-        if (selectedType === 'product') {
-            productField.style.display = 'block';
-            categoryField.style.display = 'none';
-            productSelect.required = true;
-            categorySelect.required = false;
-            categorySelect.value = '';
-        } else if (selectedType === 'category') {
-            productField.style.display = 'none';
-            categoryField.style.display = 'block';
-            productSelect.required = false;
-            categorySelect.required = true;
-            productSelect.value = '';
+        const type = sendTypeSelect ? sendTypeSelect.value : '';
+        if (type === 'product') {
+            productField.style.display = 'block'; categoryField.style.display = 'none';
+            if (productSelect) productSelect.required = true; if (categorySelect) { categorySelect.required = false; categorySelect.value = ''; }
+        } else if (type === 'category') {
+            productField.style.display = 'none'; categoryField.style.display = 'block';
+            if (categorySelect) categorySelect.required = true; if (productSelect) { productSelect.required = false; productSelect.value = ''; }
         } else {
-            productField.style.display = 'none';
-            categoryField.style.display = 'none';
-            productSelect.required = false;
-            categorySelect.required = false;
-            productSelect.value = '';
-            categorySelect.value = '';
+            productField.style.display = 'none'; categoryField.style.display = 'none';
+            if (productSelect) { productSelect.required = false; productSelect.value = ''; }
+            if (categorySelect) { categorySelect.required = false; categorySelect.value = ''; }
         }
     }
-    
-    // Make function global for form onchange
-    window.toggleSendTypeFields = toggleSendTypeFields;
 });
 </script>
 

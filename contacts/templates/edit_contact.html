@@ -136,63 +136,54 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Validação de formulário
         const form = document.querySelector('form');
         const nameInput = document.getElementById('id_name');
         const phoneInput = document.getElementById('id_phone');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const contactId = {{ contact.id }};
 
-        // Máscara de telefone
         phoneInput.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
-            
             if (value.length <= 11) {
-                if (value.length > 6) {
-                    value = value.replace(/^(\d{2})(\d{4,5})(\d{4}).*/, '($1) $2-$3');
-                } else if (value.length > 2) {
-                    value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
-                } else if (value.length > 0) {
-                    value = value.replace(/^(\d*)/, '($1');
-                }
+                if (value.length > 6) value = value.replace(/^(\d{2})(\d{4,5})(\d{4}).*/, '($1) $2-$3');
+                else if (value.length > 2) value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+                else if (value.length > 0) value = value.replace(/^(\d*)/, '($1');
             }
-            
             e.target.value = value;
         });
 
-        form.addEventListener('submit', function(e) {
-            let isValid = true;
-
-            // Limpar mensagens de erro anteriores
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
             document.querySelectorAll('.error-message').forEach(el => el.remove());
 
-            // Validar nome
-            if (!nameInput.value.trim()) {
-                isValid = false;
-                showError(nameInput, 'O nome do contato é obrigatório.');
-            } else if (nameInput.value.trim().length < 3) {
-                isValid = false;
-                showError(nameInput, 'O nome deve ter pelo menos 3 caracteres.');
-            }
+            let isValid = true;
+            if (!nameInput.value.trim() || nameInput.value.trim().length < 3) { isValid = false; showError(nameInput, 'O nome deve ter pelo menos 3 caracteres.'); }
+            if (!phoneInput.value.trim()) { isValid = false; showError(phoneInput, 'O telefone é obrigatório.'); }
+            if (!isValid) return;
 
-            // Validar telefone
-            if (!phoneInput.value.trim()) {
-                isValid = false;
-                showError(phoneInput, 'O telefone do contato é obrigatório.');
-            }
+            setButtonLoading(submitBtn, true, 'Salvando...');
+            const formData = new FormData(form);
+            const { ok, data } = await apiRequest(`/contacts/api/${contactId}/edit/`, { method: 'POST', body: formData, isFormData: true });
+            setButtonLoading(submitBtn, false);
 
-            if (!isValid) {
-                e.preventDefault();
+            if (ok && data.success) {
+                showToast('Contato atualizado com sucesso!', 'success');
+                setTimeout(() => window.location.href = '/contacts/', 800);
+            } else if (data.errors) {
+                Object.entries(data.errors).forEach(([field, errors]) => {
+                    const input = document.getElementById(`id_${field}`);
+                    if (input) showError(input, errors[0]);
+                });
+                showToast('Corrija os erros no formulário', 'error');
+            } else {
+                showToast(data.error || 'Erro ao atualizar contato', 'error');
             }
         });
 
         function showError(input, message) {
             const errorDiv = document.createElement('p');
             errorDiv.className = 'text-red-600 dark:text-red-400 text-xs mt-1 flex items-center error-message';
-            errorDiv.innerHTML = `
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                ${message}
-            `;
+            errorDiv.innerHTML = `<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>${message}`;
             input.parentNode.appendChild(errorDiv);
         }
     });

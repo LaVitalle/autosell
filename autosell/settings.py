@@ -25,7 +25,7 @@ SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 PROD = config('PROD')
-DEBUG = True if PROD == 'False' else True
+DEBUG = PROD != 'True'
 
 ALLOWED_HOSTS = ['autosell.upperlavtech.com', 'localhost', '127.0.0.1']
 
@@ -128,6 +128,7 @@ SUPABASE_URL = config("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY")
 
 # Evolution API
+EVOLUTION_SERVER_IP = config("EVOLUTION_SERVER_IP")
 EVOLUTION_TOKEN = config("EVOLUTION_TOKEN")
 EVOLUTION_URL = config("EVOLUTION_URL")
 EVOLUTION_INSTANCE_ID = config("EVOLUTION_INSTANCE_ID")

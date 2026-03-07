@@ -1,11 +1,15 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from .models import Contact
 from .forms import ContactForm
 # Create your views here.
 @login_required
 def get_all_contacts(request):
-    contacts = Contact.objects.all()
+    contacts_list = Contact.objects.all()
+    paginator = Paginator(contacts_list, 12)
+    page_number = request.GET.get('page')
+    contacts = paginator.get_page(page_number)
     context = {
         'contacts': contacts,
     }
