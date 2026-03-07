@@ -118,9 +118,9 @@ def api_send_text(request, conversation_id):
         if not text:
             return api_error('Texto vazio')
 
-        result = send_text_message(conversation.contact.phone, text)
+        result = send_text_message(conversation.remote_jid, text)
         log_system_event('INFO', 'livechat.api.send_text',
-            f'Phone: {conversation.contact.phone} | Result type: {type(result).__name__} | Result: {str(result)[:500]}')
+            f'RemoteJid: {conversation.remote_jid} | Result type: {type(result).__name__} | Result: {str(result)[:500]}')
 
         now = dj_timezone.now()
         wpp_id = None
@@ -175,7 +175,7 @@ def api_send_product(request, conversation_id):
         product_id = body.get('product_id')
         product = Product.objects.get(id=product_id)
 
-        result = send_product_message(conversation.contact.phone, product)
+        result = send_product_message(conversation.remote_jid, product)
 
         now = dj_timezone.now()
         wpp_id = None
@@ -238,10 +238,10 @@ def api_send_category(request, conversation_id):
         if not products.exists():
             return api_error('Categoria sem produtos disponiveis', 400)
 
-        phone = conversation.contact.phone
+        remote_jid = conversation.remote_jid
         sent_count = 0
         for product in products:
-            result = send_product_message(phone, product)
+            result = send_product_message(remote_jid, product)
             if result:
                 sent_count += 1
 

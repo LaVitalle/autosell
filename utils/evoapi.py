@@ -1,5 +1,5 @@
 from django.conf import settings
-from requests import post, put
+from requests import post
 from utils.api_response import log_system_event
 
 # Configurações da Evolution API
@@ -89,8 +89,8 @@ def send_product_message(phone, product):
 
 def mark_message_as_read(remote_jid, message_ids):
     try:
-        response = put(
-            f"{EVOLUTION_URL}/chat/markMessageAsRead/{EVOLUTION_INSTANCE_ID}",
+        response = post(
+            f"{EVOLUTION_URL}/chat/readMessage/{EVOLUTION_INSTANCE_ID}",
             headers={
                 "Content-Type": "application/json",
                 "apikey": f"{EVOLUTION_INSTANCE_TOKEN}"
