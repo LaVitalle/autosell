@@ -113,11 +113,17 @@ def _process_single_message(data):
         text = '[Mensagem]'
 
     phone = remote_jid.split('@')[0]
+    push_name = data.get('pushName', '').strip()
 
-    contact, _ = Contact.objects.get_or_create(
+    contact, created = Contact.objects.get_or_create(
         phone=phone,
-        defaults={'name': phone}
+        defaults={'name': push_name or phone}
     )
+
+    # If contact exists with phone as name but pushName is available, update it
+    if not created and push_name and contact.name == phone:
+        contact.name = push_name
+        contact.save(update_fields=['name'])
 
     conversation, _ = Conversation.objects.get_or_create(
         remote_jid=remote_jid,

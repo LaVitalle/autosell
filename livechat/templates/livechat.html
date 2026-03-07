@@ -2,16 +2,8 @@
 
 {% block content %}
 <style>
-    /* Override main padding for full-height chat */
-    .main-content > .p-4 { padding: 0 !important; }
-    .main-content > .md\:p-8 { padding: 0 !important; }
-    @media (max-width: 767px) {
-        .main-content { padding-bottom: 0 !important; }
-    }
-
     .chat-container {
         display: flex;
-        height: calc(100vh - 0px);
         overflow: hidden;
     }
     @media (max-width: 767px) {
@@ -24,6 +16,16 @@
     .conv-list { width: 320px; min-width: 320px; overflow-y: auto; }
     .chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
     .messages-area { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+
+    /* Custom scrollbar */
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 3px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
+    .dark .custom-scroll::-webkit-scrollbar-thumb { background: #525252; }
+    .dark .custom-scroll::-webkit-scrollbar-thumb:hover { background: #737373; }
+    .custom-scroll { scrollbar-width: thin; scrollbar-color: #d4d4d4 transparent; }
+    .dark .custom-scroll { scrollbar-color: #525252 transparent; }
 
     @media (max-width: 767px) {
         .conv-list { width: 100%; min-width: 100%; }
@@ -102,7 +104,7 @@
 
 <div class="chat-container" id="chatContainer">
     <!-- Conversation List -->
-    <div class="conv-list bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700" id="convList">
+    <div class="conv-list custom-scroll bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700" id="convList">
         <!-- Search -->
         <div class="p-3 border-b border-neutral-200 dark:border-neutral-700">
             <div class="flex items-center gap-2">
@@ -116,7 +118,7 @@
                 </div>
             </div>
         </div>
-        <div id="convItems" class="overflow-y-auto" style="height: calc(100% - 53px);"></div>
+        <div id="convItems" class="overflow-y-auto custom-scroll" style="height: calc(100% - 53px);"></div>
     </div>
 
     <!-- Chat Area -->
@@ -141,7 +143,8 @@
                     </svg>
                 </button>
                 <div class="flex-1 min-w-0">
-                    <p id="chatContactName" class="font-semibold text-neutral-900 dark:text-white truncate"></p>
+                    <p id="chatContactName" class="font-semibold text-neutral-900 dark:text-white truncate cursor-pointer hover:underline" onclick="startEditContactName()"></p>
+                    <input id="chatContactNameInput" type="text" class="hidden font-semibold text-neutral-900 dark:text-white bg-transparent border-b-2 border-neutral-400 dark:border-neutral-500 focus:border-neutral-900 dark:focus:border-white outline-none w-full text-sm py-0.5" maxlength="100">
                     <p id="chatContactPhone" class="text-xs text-neutral-500 dark:text-neutral-400"></p>
                 </div>
                 <div class="flex items-center gap-1">
@@ -160,7 +163,7 @@
             </div>
 
             <!-- Messages -->
-            <div id="messagesArea" class="messages-area px-4 py-3 bg-neutral-50 dark:bg-neutral-900">
+            <div id="messagesArea" class="messages-area custom-scroll px-4 py-3 bg-neutral-50 dark:bg-neutral-900">
                 <div id="messagesContainer"></div>
             </div>
 
@@ -223,7 +226,7 @@
                 <option value="">Todas</option>
             </select>
         </div>
-        <div id="productGrid" class="p-3 overflow-y-auto flex-1 grid grid-cols-2 gap-2" style="max-height: 400px;"></div>
+        <div id="productGrid" class="p-3 overflow-y-auto custom-scroll flex-1 grid grid-cols-2 gap-2" style="max-height: 400px;"></div>
         <div class="p-3 border-t border-neutral-200 dark:border-neutral-700 flex items-center gap-2" id="productModalFooter" style="display:none;">
             <label class="text-sm text-neutral-600 dark:text-neutral-400">Qtd:</label>
             <input type="number" id="productQtyInput" value="1" min="1"
@@ -245,7 +248,7 @@
                 </svg>
             </button>
         </div>
-        <div id="categoryList" class="p-3 overflow-y-auto" style="max-height: 400px;"></div>
+        <div id="categoryList" class="p-3 overflow-y-auto custom-scroll" style="max-height: 400px;"></div>
     </div>
 </div>
 
@@ -260,7 +263,7 @@
                 </svg>
             </button>
         </div>
-        <div id="cartContent" class="p-3 overflow-y-auto" style="max-height: 400px;"></div>
+        <div id="cartContent" class="p-3 overflow-y-auto custom-scroll" style="max-height: 400px;"></div>
         <div id="cartFooter" class="p-3 border-t border-neutral-200 dark:border-neutral-700" style="display:none;">
             <div class="flex items-center justify-between mb-3">
                 <span class="font-semibold text-neutral-900 dark:text-white">Total:</span>
@@ -896,5 +899,60 @@ function autoResize() {
     el.style.height = '36px';
     el.style.height = Math.min(el.scrollHeight, 96) + 'px';
 }
+
+// ===== Layout Fix =====
+(function() {
+    const wrapper = document.getElementById('contentWrapper');
+    if (wrapper) {
+        wrapper.style.padding = '0';
+        wrapper.style.height = '100%';
+    }
+})();
+
+// ===== Contact Name Edit =====
+function startEditContactName() {
+    if (!currentConvId) return;
+    const nameEl = document.getElementById('chatContactName');
+    const inputEl = document.getElementById('chatContactNameInput');
+    inputEl.value = nameEl.textContent;
+    nameEl.classList.add('hidden');
+    inputEl.classList.remove('hidden');
+    inputEl.focus();
+    inputEl.select();
+}
+
+function cancelEditContactName() {
+    const nameEl = document.getElementById('chatContactName');
+    const inputEl = document.getElementById('chatContactNameInput');
+    inputEl.classList.add('hidden');
+    nameEl.classList.remove('hidden');
+}
+
+async function saveContactName() {
+    if (!currentConvId) return;
+    const inputEl = document.getElementById('chatContactNameInput');
+    const nameEl = document.getElementById('chatContactName');
+    const newName = inputEl.value.trim();
+    if (!newName || newName === nameEl.textContent) {
+        cancelEditContactName();
+        return;
+    }
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/update-contact/`, {
+        method: 'POST', body: { name: newName }
+    });
+    if (res.ok) {
+        nameEl.textContent = res.data.data.name;
+        cancelEditContactName();
+        loadConversations();
+    } else {
+        showToast(apiMessage(res.data), 'error');
+    }
+}
+
+document.getElementById('chatContactNameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveContactName(); }
+    if (e.key === 'Escape') { cancelEditContactName(); }
+});
+document.getElementById('chatContactNameInput').addEventListener('blur', saveContactName);
 </script>
 {% endblock %}

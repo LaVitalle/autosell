@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/conversations/<int:conversation_id>/send-product/', api_views.api_send_product, name='livechat_send_product'),
     path('api/conversations/<int:conversation_id>/send-category/', api_views.api_send_category, name='livechat_send_category'),
     path('api/conversations/<int:conversation_id>/mark-read/', api_views.api_mark_read, name='livechat_mark_read'),
+    path('api/conversations/<int:conversation_id>/update-contact/', api_views.api_update_contact, name='livechat_update_contact'),
 
     # Cart
     path('api/conversations/<int:conversation_id>/cart/', api_views.api_cart, name='livechat_cart'),

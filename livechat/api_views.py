@@ -308,6 +308,31 @@ def api_mark_read(request, conversation_id):
         return api_exception(request, 'livechat.api.mark_read')
 
 
+# ─── Contact ─────────────────────────────────────────────────────────────────
+
+@login_required
+@require_http_methods(["POST"])
+def api_update_contact(request, conversation_id):
+    try:
+        conversation = Conversation.objects.select_related('contact').get(id=conversation_id)
+    except Conversation.DoesNotExist:
+        return api_error('Conversa nao encontrada', 404)
+
+    try:
+        body = json.loads(request.body)
+        name = body.get('name', '').strip()
+        if not name:
+            return api_error('Nome vazio')
+
+        contact = conversation.contact
+        contact.name = name
+        contact.save(update_fields=['name'])
+
+        return api_success(data={'name': contact.name}, message='Contato atualizado')
+    except Exception:
+        return api_exception(request, 'livechat.api.update_contact')
+
+
 # ─── Cart ────────────────────────────────────────────────────────────────────
 
 @login_required
