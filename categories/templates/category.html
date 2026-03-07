@@ -396,58 +396,20 @@
 
 <!-- JavaScript para Funcionalidades -->
 <script>
-// Função para remover produto da categoria
-function removeFromCategory(productId, productName) {
-  if (confirm(`Tem certeza que deseja remover "${productName}" desta categoria?`)) {
-    // Aqui você implementaria a lógica de remoção via AJAX
-    // Por enquanto, apenas log
-    console.log(`Remover produto ${productId} da categoria {{ category.id }}`);
-    
-    // Exemplo de implementação:
-    // fetch(`/categories/{{ category.id }}/remove-product/${productId}/`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-    //     'Content-Type': 'application/json',
-    //   }
-    // })
-    // .then(response => response.json())
-    // .then(data => {
-    //   if (data.success) {
-    //     location.reload();
-    //   }
-    // });
-  }
-}
+async function removeFromCategory(productId, productName) {
+  const confirmed = await confirmModal({
+    title: 'Remover Produto',
+    message: `Tem certeza que deseja remover "${productName}" desta categoria?`,
+    confirmText: 'Remover',
+  });
+  if (!confirmed) return;
 
-// Função para confirmar exclusão da categoria
-function confirmDeleteCategory(categoryId, categoryName) {
-  const message = `⚠️ ATENÇÃO: Você está prestes a excluir a categoria "${categoryName}".\n\n` +
-                  `Esta ação é IRREVERSÍVEL e irá:\n` +
-                  `• Excluir permanentemente a categoria\n` +
-                  `• Remover a associação dos produtos com esta categoria\n` +
-                  `• Os produtos NÃO serão excluídos, apenas desassociados\n\n` +
-                  `Tem certeza que deseja continuar?`;
-                  
-  if (confirm(message)) {
-    // Por enquanto, apenas log - aqui seria implementada a lógica de exclusão
-    console.log(`Excluir categoria ${categoryId}: ${categoryName}`);
-    
-    // Exemplo de implementação futura:
-    // const form = document.createElement('form');
-    // form.method = 'POST';
-    // form.action = `/categories/${categoryId}/delete/`;
-    // 
-    // const csrfInput = document.createElement('input');
-    // csrfInput.type = 'hidden';
-    // csrfInput.name = 'csrfmiddlewaretoken';
-    // csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    // form.appendChild(csrfInput);
-    // 
-    // document.body.appendChild(form);
-    // form.submit();
-    
-    alert('Funcionalidade de exclusão será implementada em breve!');
+  const { ok, data } = await apiRequest(`/categories/api/{{ category.id }}/remove-product/${productId}/`, { method: 'POST' });
+  if (ok) {
+    showToast(apiMessage(data), 'success');
+    setTimeout(() => location.reload(), 800);
+  } else {
+    showToast(apiMessage(data), 'error');
   }
 }
 

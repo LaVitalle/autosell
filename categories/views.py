@@ -1,8 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-import uuid
-from utils.storage import upload_file, delete_file
+from utils.storage import delete_file
 from .models import Category
 from .forms import CategoryForm
 from products.models import Product
@@ -10,11 +8,7 @@ from products.models import Product
 # Create your views here.
 @login_required
 def get_all_categories(request):
-    categories_list = Category.objects.all()
-    paginator = Paginator(categories_list, 12)
-    page_number = request.GET.get('page')
-    categories = paginator.get_page(page_number)
-    return render(request, 'categories.html', {'categories': categories})
+    return render(request, 'categories.html')
 
 @login_required
 def get_category_by_id(request, category_id):
@@ -31,90 +25,46 @@ def get_category_by_id(request, category_id):
 
 @login_required
 def create_category(request):
-    # Importar Product model
-    from products.models import Product
-    
-    if request.method == 'POST':
-        form = CategoryForm(request.POST or None, request.FILES or None)
-        if form.is_valid():
-            category = form.save(commit=False)
-            image = request.FILES.get("image_file")
-            if image:
-                file_name = f"categories/{str(uuid.uuid4()) + image.name}"
-                img_url = upload_file(file_name, image)
-                if img_url:
-                    category.image_url = img_url
-            category.save()
-            
-            # Processar produtos selecionados
-            selected_products = request.POST.getlist('products')
-            if selected_products:
-                # Converter IDs para inteiros e filtrar produtos existentes
-                product_ids = [int(pid) for pid in selected_products if pid.isdigit()]
-                products = Product.objects.filter(id__in=product_ids)
-                category.products.set(products)
-            
-            return redirect('get_all_categories')
-    else:
-        form = CategoryForm()
-    
-    # Buscar todos os produtos para o JavaScript
+    form = CategoryForm(request.POST or None, request.FILES or None) if request.method == 'POST' else CategoryForm()
+
     all_products = Product.objects.all().order_by('name')
-    
+
     context = {
         'form': form,
-        'all_products': all_products
+        'all_products': all_products,
+        'is_edit': False,
+        'page_title': 'Nova Categoria',
+        'page_subtitle': 'Crie uma nova categoria e adicione produtos',
+        'submit_label': 'Criar Categoria',
     }
-    
-    return render(request, 'create_category.html', context)
+
+    return render(request, 'category_form.html', context)
 
 @login_required
 def edit_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
-    
-    if request.method == 'POST':
-        form = CategoryForm(request.POST or None, request.FILES or None, instance=category)
-        if form.is_valid():
-            category = form.save(commit=False)
-            image = request.FILES.get("image_file")
-            if image:
-                file_name = f"categories/{str(uuid.uuid4()) + image.name}"
-                img_url = upload_file(file_name, image)
-                if img_url:
-                    delete_file(category.image_url)
-                    category.image_url = img_url
-            category.save()
-            
-            # Processar produtos selecionados
-            selected_products = request.POST.getlist('products')
-            if selected_products:
-                # Converter IDs para inteiros e filtrar produtos existentes
-                product_ids = [int(pid) for pid in selected_products if pid.isdigit()]
-                products = Product.objects.filter(id__in=product_ids)
-                category.products.set(products)
-            else:
-                # Se nenhum produto foi selecionado, limpar a associação
-                category.products.clear()
-            
-            return redirect('get_all_categories')
-    else:
-        form = CategoryForm(instance=category)
-    
-    # Buscar todos os produtos para o JavaScript
+
+    form = CategoryForm(request.POST or None, request.FILES or None, instance=category) if request.method == 'POST' else CategoryForm(instance=category)
+
     all_products = Product.objects.all().order_by('name')
-    
+
     context = {
         'form': form,
         'category': category,
-        'all_products': all_products
+        'all_products': all_products,
+        'is_edit': True,
+        'page_title': 'Editar Categoria',
+        'page_subtitle': 'Modifique os dados da categoria e seus produtos',
+        'submit_label': 'Salvar Alterações',
     }
-    return render(request, 'edit_category.html', context)
+
+    return render(request, 'category_form.html', context)
 
 @login_required
 def delete_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
     if request.method == 'POST' and request.POST['_method'] == 'DELETE':
-        # Deletar imagem do Supabase se existir
+        # Deletar imagem do disco se existir
         if category.image_url:
             delete_file(category.image_url)
         category.delete()

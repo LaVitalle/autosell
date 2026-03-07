@@ -11,8 +11,14 @@ from utils.api_response import api_success, api_error, api_form_error, api_excep
 @login_required
 @require_http_methods(["GET"])
 def api_list_categories(request):
-    page = int(request.GET.get('page', 1))
-    per_page = int(request.GET.get('per_page', 10))
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        per_page = min(100, max(1, int(request.GET.get('per_page', 10))))
+    except (ValueError, TypeError):
+        per_page = 10
     search = request.GET.get('search', '').strip()
 
     categories = Category.objects.all().order_by('-id')
@@ -139,3 +145,20 @@ def api_delete_category(request, category_id):
         delete_file(category.image_url)
     category.delete()
     return api_success(message='Categoria excluida com sucesso')
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_remove_product(request, category_id, product_id):
+    try:
+        category = Category.objects.get(id=category_id)
+    except Category.DoesNotExist:
+        return api_error(message='Categoria nao encontrada', status_code=404)
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return api_error(message='Produto nao encontrado', status_code=404)
+
+    category.products.remove(product)
+    return api_success(message='Produto removido da categoria com sucesso')

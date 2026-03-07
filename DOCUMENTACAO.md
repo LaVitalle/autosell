@@ -475,7 +475,7 @@ Models registrados no admin com configuracoes customizadas:
 
 - **CSS Framework:** Tailwind CSS via CDN (`cdn.tailwindcss.com`)
 - **Design System:** Paleta neutra (neutral-50 a neutral-950), com suporte a dark mode
-- **Dark Mode:** Baseado em classe (`darkMode: 'class'`), persistido no `localStorage`
+- **Dark Mode:** Baseado em classe (`darkMode: 'class'`), persistido no `localStorage` (chave `theme`, valores `light`/`dark`). O tema e aplicado via script inline no `<head>` antes do body renderizar, evitando flash de modo claro (FOUC). Os toggles de tema usam classes Tailwind `dark:` para posicionamento instantaneo sem depender de JS.
 - **Templates:** Django template engine com heranca (extends `dashboard.html`)
 - **Formularios:** Estilizados com classes Tailwind inline nos widgets dos forms
 
