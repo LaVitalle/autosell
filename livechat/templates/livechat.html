@@ -1,0 +1,900 @@
+{% extends "dashboard.html" %}
+
+{% block content %}
+<style>
+    /* Override main padding for full-height chat */
+    .main-content > .p-4 { padding: 0 !important; }
+    .main-content > .md\:p-8 { padding: 0 !important; }
+    @media (max-width: 767px) {
+        .main-content { padding-bottom: 0 !important; }
+    }
+
+    .chat-container {
+        display: flex;
+        height: calc(100vh - 0px);
+        overflow: hidden;
+    }
+    @media (max-width: 767px) {
+        .chat-container { height: calc(100vh - 57px - 52px); }
+    }
+    @media (min-width: 768px) {
+        .chat-container { height: 100vh; }
+    }
+
+    .conv-list { width: 320px; min-width: 320px; overflow-y: auto; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .messages-area { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+
+    @media (max-width: 767px) {
+        .conv-list { width: 100%; min-width: 100%; }
+        .chat-area { width: 100%; }
+        .conv-list.hidden-mobile { display: none; }
+        .chat-area.hidden-mobile { display: none; }
+    }
+
+    .conv-item { cursor: pointer; transition: background 0.15s; }
+    .conv-item:hover { background: var(--hover-bg); }
+    .conv-item.active { background: var(--active-bg); }
+
+    :root {
+        --hover-bg: #f5f5f5;
+        --active-bg: #e5e5e5;
+    }
+    .dark {
+        --hover-bg: #262626;
+        --active-bg: #404040;
+    }
+
+    .bubble-in {
+        background: #f5f5f5;
+        border-radius: 2px 12px 12px 12px;
+        max-width: 75%;
+    }
+    .dark .bubble-in {
+        background: #262626;
+    }
+    .bubble-out {
+        background: #171717;
+        color: white;
+        border-radius: 12px 2px 12px 12px;
+        max-width: 75%;
+    }
+    .dark .bubble-out {
+        background: #404040;
+    }
+
+    .bubble-product {
+        border-left: 3px solid #525252;
+    }
+    .dark .bubble-product {
+        border-left-color: #a3a3a3;
+    }
+
+    /* Modal */
+    .chat-modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 80;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .chat-modal {
+        background: white; border-radius: 12px; max-width: 500px; width: 90%;
+        max-height: 80vh; display: flex; flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .dark .chat-modal { background: #262626; }
+
+    .product-grid-item {
+        cursor: pointer; transition: all 0.15s; border: 2px solid transparent;
+    }
+    .product-grid-item:hover { border-color: #a3a3a3; }
+    .product-grid-item.selected { border-color: #171717; }
+    .dark .product-grid-item.selected { border-color: #fafafa; }
+
+    /* Cart badge */
+    .cart-badge {
+        position: absolute; top: -4px; right: -4px;
+        background: #171717; color: white; font-size: 10px;
+        min-width: 16px; height: 16px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 600; padding: 0 4px;
+    }
+    .dark .cart-badge { background: #fafafa; color: #171717; }
+</style>
+
+<div class="chat-container" id="chatContainer">
+    <!-- Conversation List -->
+    <div class="conv-list bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700" id="convList">
+        <!-- Search -->
+        <div class="p-3 border-b border-neutral-200 dark:border-neutral-700">
+            <div class="flex items-center gap-2">
+                <h2 class="text-lg font-semibold text-neutral-900 dark:text-white flex-shrink-0">Chat</h2>
+                <div class="flex-1 relative">
+                    <input type="text" id="convSearch" placeholder="Buscar conversa..."
+                        class="w-full pl-8 pr-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 border-none rounded-lg text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600">
+                    <svg class="w-4 h-4 absolute left-2 top-2 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div id="convItems" class="overflow-y-auto" style="height: calc(100% - 53px);"></div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-area hidden-mobile" id="chatArea">
+        <!-- Empty state -->
+        <div id="chatEmpty" class="flex-1 flex items-center justify-center">
+            <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-neutral-300 dark:text-neutral-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                <p class="text-neutral-400 dark:text-neutral-500">Selecione uma conversa</p>
+            </div>
+        </div>
+
+        <!-- Active chat (hidden by default) -->
+        <div id="chatActive" class="flex-1 flex flex-col" style="display:none;">
+            <!-- Header -->
+            <div class="px-4 py-2.5 border-b border-neutral-200 dark:border-neutral-700 flex items-center gap-3 bg-white dark:bg-neutral-800">
+                <button id="btnBack" class="md:hidden p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                    <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div class="flex-1 min-w-0">
+                    <p id="chatContactName" class="font-semibold text-neutral-900 dark:text-white truncate"></p>
+                    <p id="chatContactPhone" class="text-xs text-neutral-500 dark:text-neutral-400"></p>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button id="btnCart" class="relative p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Carrinho">
+                        <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/>
+                        </svg>
+                        <span id="cartBadge" class="cart-badge" style="display:none;">0</span>
+                    </button>
+                    <button id="btnQuickSell" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Venda Rapida">
+                        <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="messagesArea" class="messages-area px-4 py-3 bg-neutral-50 dark:bg-neutral-900">
+                <div id="messagesContainer"></div>
+            </div>
+
+            <!-- Input -->
+            <div class="px-3 py-2 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
+                <div class="flex items-end gap-2">
+                    <!-- Action buttons -->
+                    <div class="flex gap-1 pb-1">
+                        <button id="btnSendProduct" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Enviar Produto">
+                            <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
+                        </button>
+                        <button id="btnSendCategory" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Enviar Categoria">
+                            <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                            </svg>
+                        </button>
+                        <button id="btnAddToCart" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Adicionar ao Carrinho">
+                            <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <textarea id="messageInput" rows="1" placeholder="Digite uma mensagem..."
+                        class="flex-1 resize-none px-3 py-2 text-sm bg-neutral-100 dark:bg-neutral-700 border-none rounded-lg text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600 max-h-24"
+                        style="min-height: 36px;"></textarea>
+                    <button id="btnSend" class="p-2 rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors mb-0.5 flex-shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Sound -->
+<audio id="notifSound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRl4DAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToDAAAAAAEAAgADAAQABgAIAAoADQARABUAGgAfACUALAAzADsARABNAFcAYgBuAHoAhwCUAKIAsQDAANAA4ADxAAIBFAEmATkBTAFgAXQBiQGeAbQBygHgAfcBDgImAj4CVgJuAocCoAK5AtIC7AIGAyEDPANXA3MDjwOrA8cD5AMBBBwEMARBBEoESwRDBDQEHAT9A9cDqgN4A0ADAgO/AnYCKQLXAYEBKAHLAGwADACs/0r/5/6E/iL+wP1g/QL9p/xQ/P37rvtk+x/73fqh+mv6O/oS+u/50vmF" type="audio/wav">
+</audio>
+
+<!-- Product Selector Modal -->
+<div id="productModal" class="chat-modal-overlay" style="display:none;">
+    <div class="chat-modal">
+        <div class="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+            <h3 id="productModalTitle" class="font-semibold text-neutral-900 dark:text-white">Selecionar Produto</h3>
+            <button onclick="closeProductModal()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                <svg class="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="p-3 border-b border-neutral-200 dark:border-neutral-700 flex gap-2">
+            <input type="text" id="productSearchInput" placeholder="Buscar produto..."
+                class="flex-1 px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 border-none rounded-lg text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600">
+            <select id="productCategoryFilter"
+                class="px-2 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 border-none rounded-lg text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600">
+                <option value="">Todas</option>
+            </select>
+        </div>
+        <div id="productGrid" class="p-3 overflow-y-auto flex-1 grid grid-cols-2 gap-2" style="max-height: 400px;"></div>
+        <div class="p-3 border-t border-neutral-200 dark:border-neutral-700 flex items-center gap-2" id="productModalFooter" style="display:none;">
+            <label class="text-sm text-neutral-600 dark:text-neutral-400">Qtd:</label>
+            <input type="number" id="productQtyInput" value="1" min="1"
+                class="w-16 px-2 py-1 text-sm bg-neutral-100 dark:bg-neutral-700 border-none rounded-lg text-neutral-900 dark:text-white text-center focus:outline-none">
+            <div class="flex-1"></div>
+            <button id="productModalAction" class="px-4 py-1.5 text-sm font-medium bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Category Selector Modal -->
+<div id="categoryModal" class="chat-modal-overlay" style="display:none;">
+    <div class="chat-modal">
+        <div class="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+            <h3 class="font-semibold text-neutral-900 dark:text-white">Enviar Categoria</h3>
+            <button onclick="closeCategoryModal()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                <svg class="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div id="categoryList" class="p-3 overflow-y-auto" style="max-height: 400px;"></div>
+    </div>
+</div>
+
+<!-- Cart Modal -->
+<div id="cartModal" class="chat-modal-overlay" style="display:none;">
+    <div class="chat-modal">
+        <div class="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+            <h3 class="font-semibold text-neutral-900 dark:text-white">Carrinho</h3>
+            <button onclick="closeCartModal()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                <svg class="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div id="cartContent" class="p-3 overflow-y-auto" style="max-height: 400px;"></div>
+        <div id="cartFooter" class="p-3 border-t border-neutral-200 dark:border-neutral-700" style="display:none;">
+            <div class="flex items-center justify-between mb-3">
+                <span class="font-semibold text-neutral-900 dark:text-white">Total:</span>
+                <span id="cartTotal" class="font-bold text-lg text-neutral-900 dark:text-white">R$ 0,00</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="clearCart()" class="flex-1 px-3 py-2 text-sm font-medium border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">Limpar</button>
+                <button onclick="finalizeCart()" class="flex-1 px-3 py-2 text-sm font-medium bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors">Finalizar Venda</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Sale Modal -->
+<div id="confirmSaleModal" class="chat-modal-overlay" style="display:none;">
+    <div class="chat-modal" style="max-width: 400px;">
+        <div class="p-4 border-b border-neutral-200 dark:border-neutral-700">
+            <h3 class="font-semibold text-neutral-900 dark:text-white">Confirmar Venda</h3>
+        </div>
+        <div id="confirmSaleContent" class="p-4"></div>
+        <div class="p-3 border-t border-neutral-200 dark:border-neutral-700 flex gap-2">
+            <button onclick="closeConfirmSale()" class="flex-1 px-3 py-2 text-sm font-medium border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">Cancelar</button>
+            <button id="btnConfirmSale" class="flex-1 px-3 py-2 text-sm font-medium bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-colors">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== State =====
+let currentConvId = null;
+let lastMessageId = 0;
+let pollInterval = null;
+let msgPollInterval = null;
+let isMobile = window.innerWidth < 768;
+let selectedProductId = null;
+let productModalMode = null; // 'send', 'cart', 'quicksell'
+let cachedProducts = [];
+let cachedCategories = [];
+
+const BASE = '/livechat/api';
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+    loadConversations();
+    startGlobalPoll();
+
+    document.getElementById('convSearch').addEventListener('input', debounce(() => loadConversations(), 300));
+    document.getElementById('btnBack').addEventListener('click', showConvList);
+    document.getElementById('btnSend').addEventListener('click', sendText);
+    document.getElementById('messageInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); }
+    });
+    document.getElementById('messageInput').addEventListener('input', autoResize);
+    document.getElementById('btnSendProduct').addEventListener('click', () => openProductModal('send'));
+    document.getElementById('btnSendCategory').addEventListener('click', openCategoryModal);
+    document.getElementById('btnAddToCart').addEventListener('click', () => openProductModal('cart'));
+    document.getElementById('btnQuickSell').addEventListener('click', () => openProductModal('quicksell'));
+    document.getElementById('btnCart').addEventListener('click', openCartModal);
+    document.getElementById('productSearchInput').addEventListener('input', debounce(() => filterProducts(), 200));
+    document.getElementById('productCategoryFilter').addEventListener('change', () => filterProducts());
+
+    window.addEventListener('resize', () => { isMobile = window.innerWidth < 768; });
+});
+
+// ===== Conversations =====
+async function loadConversations() {
+    const search = document.getElementById('convSearch').value.trim();
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    const res = await apiRequest(`${BASE}/conversations/${params}`);
+    if (!res.ok) return;
+
+    const convs = res.data.data || [];
+    const container = document.getElementById('convItems');
+    if (convs.length === 0) {
+        container.innerHTML = '<p class="p-4 text-sm text-neutral-400 text-center">Nenhuma conversa</p>';
+        return;
+    }
+
+    container.innerHTML = convs.map(c => `
+        <div class="conv-item flex items-center gap-3 px-4 py-3 border-b border-neutral-100 dark:border-neutral-700/50 ${c.id === currentConvId ? 'active' : ''}"
+             onclick="selectConversation(${c.id}, '${escHtml(c.contact_name)}', '${escHtml(c.contact_phone)}')">
+            <div class="w-10 h-10 bg-neutral-200 dark:bg-neutral-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="text-sm font-semibold text-neutral-600 dark:text-neutral-300">${c.contact_name.charAt(0).toUpperCase()}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-neutral-900 dark:text-white truncate">${escHtml(c.contact_name)}</p>
+                    <span class="text-xs text-neutral-400 flex-shrink-0 ml-2">${formatTime(c.last_message_at)}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                        ${c.last_message_direction === 'out' ? '<span class="text-neutral-400">Voce: </span>' : ''}${escHtml(c.last_message_text || '')}
+                    </p>
+                    ${c.unread_count > 0 ? `<span class="ml-2 flex-shrink-0 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">${c.unread_count}</span>` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function selectConversation(id, name, phone) {
+    currentConvId = id;
+    lastMessageId = 0;
+    document.getElementById('chatContactName').textContent = name;
+    document.getElementById('chatContactPhone').textContent = phone;
+    document.getElementById('chatEmpty').style.display = 'none';
+    document.getElementById('chatActive').style.display = 'flex';
+    document.getElementById('messagesContainer').innerHTML = '';
+
+    if (isMobile) {
+        document.getElementById('convList').classList.add('hidden-mobile');
+        document.getElementById('chatArea').classList.remove('hidden-mobile');
+    }
+
+    // Highlight active conv
+    document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
+    event?.target?.closest?.('.conv-item')?.classList.add('active');
+
+    await loadMessages();
+    markRead();
+    loadCartBadge();
+    startMessagePoll();
+}
+
+function showConvList() {
+    document.getElementById('convList').classList.remove('hidden-mobile');
+    document.getElementById('chatArea').classList.add('hidden-mobile');
+    currentConvId = null;
+    stopMessagePoll();
+}
+
+// ===== Messages =====
+async function loadMessages() {
+    if (!currentConvId) return;
+    const params = lastMessageId ? `?after_id=${lastMessageId}` : '?limit=50';
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/messages/${params}`);
+    if (!res.ok) return;
+
+    const msgs = res.data.data || [];
+    if (msgs.length === 0) return;
+
+    const container = document.getElementById('messagesContainer');
+    const area = document.getElementById('messagesArea');
+    const wasAtBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 100;
+
+    msgs.forEach(m => {
+        if (m.id > lastMessageId) lastMessageId = m.id;
+        container.insertAdjacentHTML('beforeend', renderMessage(m));
+    });
+
+    if (wasAtBottom || !lastMessageId) {
+        area.scrollTop = area.scrollHeight;
+    }
+}
+
+function renderMessage(m) {
+    const isOut = m.direction === 'out';
+    const align = isOut ? 'justify-end' : 'justify-start';
+    const bubbleClass = isOut ? 'bubble-out' : 'bubble-in';
+    const textColor = isOut ? '' : 'text-neutral-900 dark:text-white';
+
+    let content = escHtml(m.content || '');
+    if (m.msg_type === 'product' && m.product) {
+        content = `<div class="bubble-product pl-2">
+            <p class="font-semibold text-sm">${escHtml(m.product.name)}</p>
+            <p class="text-xs opacity-75">R$ ${m.product.price}</p>
+        </div>`;
+    } else if (m.msg_type === 'category') {
+        content = `<div class="bubble-product pl-2">
+            <p class="text-sm">${escHtml(m.content)}</p>
+        </div>`;
+    } else {
+        content = `<p class="text-sm whitespace-pre-wrap break-words">${content}</p>`;
+    }
+
+    const statusIcon = isOut ? getStatusIcon(m.status) : '';
+    const time = formatTime(m.timestamp);
+
+    return `<div class="flex ${align} mb-1.5" data-msg-id="${m.id}">
+        <div class="${bubbleClass} ${textColor} px-3 py-1.5">
+            ${content}
+            <div class="flex items-center justify-end gap-1 mt-0.5">
+                <span class="text-[10px] opacity-50">${time}</span>
+                ${statusIcon}
+            </div>
+        </div>
+    </div>`;
+}
+
+function getStatusIcon(status) {
+    const cls = 'w-3.5 h-3.5 opacity-50';
+    if (status === 'read') return `<svg class="${cls}" fill="currentColor" viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/></svg>`;
+    if (status === 'delivered') return `<svg class="${cls}" fill="currentColor" viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41z"/></svg>`;
+    if (status === 'sent') return `<svg class="${cls}" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>`;
+    if (status === 'pending') return `<svg class="${cls} animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2" opacity="0.3"/><path d="M4 12a8 8 0 018-8" stroke-width="2" stroke-linecap="round"/></svg>`;
+    return '';
+}
+
+async function sendText() {
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if (!text || !currentConvId) return;
+
+    input.value = '';
+    input.style.height = '36px';
+
+    // Optimistic UI
+    const tempId = Date.now();
+    const container = document.getElementById('messagesContainer');
+    const area = document.getElementById('messagesArea');
+    container.insertAdjacentHTML('beforeend', renderMessage({
+        id: tempId, direction: 'out', msg_type: 'text', content: text,
+        status: 'pending', timestamp: new Date().toISOString()
+    }));
+    area.scrollTop = area.scrollHeight;
+
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/send-text/`, {
+        method: 'POST', body: { text }
+    });
+
+    // Replace optimistic message
+    const tempEl = container.querySelector(`[data-msg-id="${tempId}"]`);
+    if (res.ok && res.data.data) {
+        const realMsg = res.data.data;
+        if (realMsg.id > lastMessageId) lastMessageId = realMsg.id;
+        if (tempEl) tempEl.outerHTML = renderMessage(realMsg);
+    } else {
+        if (tempEl) {
+            tempEl.querySelector('.opacity-50:last-child')?.remove();
+            tempEl.querySelector('.bubble-out')?.classList.add('opacity-50');
+        }
+        showToast(apiMessage(res.data), 'error');
+    }
+    loadConversations();
+}
+
+async function markRead() {
+    if (!currentConvId) return;
+    await apiRequest(`${BASE}/conversations/${currentConvId}/mark-read/`, { method: 'POST' });
+    loadConversations();
+}
+
+// ===== Polling =====
+function startGlobalPoll() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(async () => {
+        if (!currentConvId) loadConversations();
+
+        const res = await apiRequest(`${BASE}/poll/`);
+        if (!res.ok) return;
+        const totalUnread = res.data.stats?.total_unread || 0;
+        updateGlobalBadge(totalUnread);
+
+        // Check for new incoming messages to play sound
+        const convs = res.data.data || [];
+        const hasNew = convs.some(c => c.unread_count > 0 && c.last_message_direction === 'in');
+        if (hasNew && document.hidden) {
+            try { document.getElementById('notifSound').play(); } catch(e) {}
+        }
+    }, document.hidden ? 15000 : 5000);
+}
+
+function startMessagePoll() {
+    stopMessagePoll();
+    msgPollInterval = setInterval(async () => {
+        if (!currentConvId) return;
+        const prevLast = lastMessageId;
+        await loadMessages();
+        if (lastMessageId > prevLast) {
+            markRead();
+            loadConversations();
+            // Play sound for incoming
+            const container = document.getElementById('messagesContainer');
+            const lastEl = container.lastElementChild;
+            if (lastEl && !lastEl.querySelector('.bubble-out')) {
+                try { document.getElementById('notifSound').play(); } catch(e) {}
+            }
+        }
+    }, document.hidden ? 15000 : 3000);
+}
+
+function stopMessagePoll() {
+    if (msgPollInterval) { clearInterval(msgPollInterval); msgPollInterval = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+    startGlobalPoll();
+    if (currentConvId) startMessagePoll();
+});
+
+// ===== Product Modal =====
+async function openProductModal(mode) {
+    productModalMode = mode;
+    selectedProductId = null;
+    const titles = { send: 'Enviar Produto', cart: 'Adicionar ao Carrinho', quicksell: 'Venda Rapida' };
+    const actions = { send: 'Enviar', cart: 'Adicionar', quicksell: 'Vender' };
+    document.getElementById('productModalTitle').textContent = titles[mode];
+    document.getElementById('productModalAction').textContent = actions[mode];
+    document.getElementById('productModalFooter').style.display = 'none';
+    document.getElementById('productQtyInput').value = 1;
+    document.getElementById('productSearchInput').value = '';
+
+    // Load categories for filter
+    if (cachedCategories.length === 0) {
+        const res = await apiRequest(`${BASE}/categories/`);
+        if (res.ok) cachedCategories = res.data.data || [];
+    }
+    const sel = document.getElementById('productCategoryFilter');
+    sel.innerHTML = '<option value="">Todas</option>' +
+        cachedCategories.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+
+    await loadProductGrid();
+    document.getElementById('productModal').style.display = 'flex';
+
+    document.getElementById('productModalAction').onclick = handleProductAction;
+}
+
+async function loadProductGrid() {
+    const search = document.getElementById('productSearchInput').value.trim();
+    const catId = document.getElementById('productCategoryFilter').value;
+    let params = [];
+    if (search) params.push(`search=${encodeURIComponent(search)}`);
+    if (catId) params.push(`category_id=${catId}`);
+    const qs = params.length ? '?' + params.join('&') : '';
+
+    const res = await apiRequest(`${BASE}/products/${qs}`);
+    if (!res.ok) return;
+    cachedProducts = res.data.data || [];
+    renderProductGrid();
+}
+
+function filterProducts() { loadProductGrid(); }
+
+function renderProductGrid() {
+    const grid = document.getElementById('productGrid');
+    if (cachedProducts.length === 0) {
+        grid.innerHTML = '<p class="col-span-2 text-center text-sm text-neutral-400 py-8">Nenhum produto encontrado</p>';
+        return;
+    }
+    grid.innerHTML = cachedProducts.map(p => `
+        <div class="product-grid-item rounded-lg p-2 bg-neutral-50 dark:bg-neutral-700/50 ${p.id === selectedProductId ? 'selected' : ''}"
+             onclick="selectProduct(${p.id})">
+            ${p.image_url ? `<img src="${p.image_url}" class="w-full h-20 object-cover rounded-md mb-1" alt="">` : `<div class="w-full h-20 bg-neutral-200 dark:bg-neutral-600 rounded-md mb-1 flex items-center justify-center"><svg class="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>`}
+            <p class="text-xs font-medium text-neutral-900 dark:text-white truncate">${escHtml(p.name)}</p>
+            <p class="text-xs text-neutral-500">R$ ${p.price}</p>
+            ${p.stock_active ? `<p class="text-[10px] text-neutral-400">${p.stock_quantity} un.</p>` : ''}
+        </div>
+    `).join('');
+}
+
+function selectProduct(id) {
+    selectedProductId = id;
+    document.querySelectorAll('.product-grid-item').forEach(el => el.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    document.getElementById('productModalFooter').style.display = 'flex';
+    // Show/hide qty for cart/quicksell modes
+    const qtyVisible = productModalMode !== 'send';
+    document.getElementById('productQtyInput').parentElement.querySelector('label').style.display = qtyVisible ? '' : 'none';
+    document.getElementById('productQtyInput').style.display = qtyVisible ? '' : 'none';
+}
+
+async function handleProductAction() {
+    if (!selectedProductId || !currentConvId) return;
+    const qty = parseInt(document.getElementById('productQtyInput').value) || 1;
+
+    if (productModalMode === 'send') {
+        const res = await apiRequest(`${BASE}/conversations/${currentConvId}/send-product/`, {
+            method: 'POST', body: { product_id: selectedProductId }
+        });
+        if (res.ok) {
+            showToast('Produto enviado', 'success');
+            closeProductModal();
+            loadMessages();
+            loadConversations();
+        } else {
+            showToast(apiMessage(res.data), 'error');
+        }
+    } else if (productModalMode === 'cart') {
+        const res = await apiRequest(`${BASE}/conversations/${currentConvId}/cart/add/`, {
+            method: 'POST', body: { product_id: selectedProductId, quantity: qty }
+        });
+        if (res.ok) {
+            showToast('Adicionado ao carrinho', 'success');
+            closeProductModal();
+            loadCartBadge();
+        } else {
+            showToast(apiMessage(res.data), 'error');
+        }
+    } else if (productModalMode === 'quicksell') {
+        // Show confirm
+        const product = cachedProducts.find(p => p.id === selectedProductId);
+        if (!product) return;
+        const total = (parseFloat(product.price) * qty).toFixed(2);
+        document.getElementById('confirmSaleContent').innerHTML = `
+            <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="text-neutral-600 dark:text-neutral-400">${escHtml(product.name)} x${qty}</span>
+                    <span class="text-neutral-900 dark:text-white font-medium">R$ ${total}</span>
+                </div>
+                <div class="border-t border-neutral-200 dark:border-neutral-700 pt-2 flex justify-between">
+                    <span class="font-semibold text-neutral-900 dark:text-white">Total</span>
+                    <span class="font-bold text-neutral-900 dark:text-white">R$ ${total}</span>
+                </div>
+            </div>`;
+        document.getElementById('btnConfirmSale').onclick = async () => {
+            const res = await apiRequest(`${BASE}/conversations/${currentConvId}/quick-sell/`, {
+                method: 'POST', body: { product_id: selectedProductId, quantity: qty }
+            });
+            if (res.ok) {
+                showToast('Venda realizada!', 'success');
+                closeConfirmSale();
+                closeProductModal();
+            } else {
+                showToast(apiMessage(res.data), 'error');
+            }
+        };
+        document.getElementById('confirmSaleModal').style.display = 'flex';
+    }
+}
+
+function closeProductModal() {
+    document.getElementById('productModal').style.display = 'none';
+    selectedProductId = null;
+}
+
+// ===== Category Modal =====
+async function openCategoryModal() {
+    if (cachedCategories.length === 0) {
+        const res = await apiRequest(`${BASE}/categories/`);
+        if (res.ok) cachedCategories = res.data.data || [];
+    }
+    const list = document.getElementById('categoryList');
+    if (cachedCategories.length === 0) {
+        list.innerHTML = '<p class="text-center text-sm text-neutral-400 py-8">Nenhuma categoria</p>';
+    } else {
+        list.innerHTML = cachedCategories.map(c => `
+            <button onclick="sendCategory(${c.id})" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left">
+                ${c.image_url ? `<img src="${c.image_url}" class="w-10 h-10 rounded-lg object-cover">` : `<div class="w-10 h-10 bg-neutral-200 dark:bg-neutral-600 rounded-lg flex items-center justify-center"><svg class="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg></div>`}
+                <div>
+                    <p class="text-sm font-medium text-neutral-900 dark:text-white">${escHtml(c.name)}</p>
+                    ${c.description ? `<p class="text-xs text-neutral-500 dark:text-neutral-400">${escHtml(c.description)}</p>` : ''}
+                </div>
+            </button>
+        `).join('');
+    }
+    document.getElementById('categoryModal').style.display = 'flex';
+}
+
+async function sendCategory(catId) {
+    if (!currentConvId) return;
+    closeCategoryModal();
+    showToast('Enviando categoria...', 'info', 2000);
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/send-category/`, {
+        method: 'POST', body: { category_id: catId }
+    });
+    if (res.ok) {
+        showToast('Categoria enviada', 'success');
+        loadMessages();
+        loadConversations();
+    } else {
+        showToast(apiMessage(res.data), 'error');
+    }
+}
+
+function closeCategoryModal() { document.getElementById('categoryModal').style.display = 'none'; }
+
+// ===== Cart =====
+async function loadCartBadge() {
+    if (!currentConvId) return;
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/cart/`);
+    if (!res.ok) return;
+    const items = res.data.data?.items || [];
+    const badge = document.getElementById('cartBadge');
+    if (items.length > 0) {
+        badge.textContent = items.length;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+async function openCartModal() {
+    if (!currentConvId) return;
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/cart/`);
+    if (!res.ok) return;
+    const data = res.data.data || {};
+    const items = data.items || [];
+    const content = document.getElementById('cartContent');
+    const footer = document.getElementById('cartFooter');
+
+    if (items.length === 0) {
+        content.innerHTML = '<p class="text-center text-sm text-neutral-400 py-8">Carrinho vazio</p>';
+        footer.style.display = 'none';
+    } else {
+        content.innerHTML = items.map(item => `
+            <div class="flex items-center gap-3 py-2 border-b border-neutral-100 dark:border-neutral-700/50">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-neutral-900 dark:text-white truncate">${escHtml(item.product_name)}</p>
+                    <p class="text-xs text-neutral-500">R$ ${item.unit_price} x ${item.quantity} = R$ ${item.subtotal}</p>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button onclick="updateCartQty(${item.id}, ${item.quantity - 1})" class="w-7 h-7 rounded-md bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-600 text-sm font-bold">-</button>
+                    <span class="text-sm w-6 text-center text-neutral-900 dark:text-white">${item.quantity}</span>
+                    <button onclick="updateCartQty(${item.id}, ${item.quantity + 1})" class="w-7 h-7 rounded-md bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-600 text-sm font-bold">+</button>
+                    <button onclick="removeCartItem(${item.id})" class="w-7 h-7 rounded-md flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 ml-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('cartTotal').textContent = `R$ ${parseFloat(data.total).toFixed(2).replace('.', ',')}`;
+        footer.style.display = 'block';
+    }
+    document.getElementById('cartModal').style.display = 'flex';
+}
+
+async function updateCartQty(itemId, qty) {
+    if (!currentConvId) return;
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/cart/update/`, {
+        method: 'POST', body: { item_id: itemId, quantity: qty }
+    });
+    if (res.ok) { openCartModal(); loadCartBadge(); }
+    else showToast(apiMessage(res.data), 'error');
+}
+
+async function removeCartItem(itemId) {
+    if (!currentConvId) return;
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/cart/remove/${itemId}/`, { method: 'POST' });
+    if (res.ok) { openCartModal(); loadCartBadge(); }
+    else showToast(apiMessage(res.data), 'error');
+}
+
+async function finalizeCart() {
+    if (!currentConvId) return;
+    // Get cart data for confirmation
+    const cartRes = await apiRequest(`${BASE}/conversations/${currentConvId}/cart/`);
+    if (!cartRes.ok) return;
+    const data = cartRes.data.data || {};
+    const items = data.items || [];
+    if (items.length === 0) return;
+
+    document.getElementById('confirmSaleContent').innerHTML = `
+        <div class="space-y-2">
+            ${items.map(i => `
+                <div class="flex justify-between text-sm">
+                    <span class="text-neutral-600 dark:text-neutral-400">${escHtml(i.product_name)} x${i.quantity}</span>
+                    <span class="text-neutral-900 dark:text-white font-medium">R$ ${i.subtotal}</span>
+                </div>
+            `).join('')}
+            <div class="border-t border-neutral-200 dark:border-neutral-700 pt-2 flex justify-between">
+                <span class="font-semibold text-neutral-900 dark:text-white">Total</span>
+                <span class="font-bold text-neutral-900 dark:text-white">R$ ${parseFloat(data.total).toFixed(2)}</span>
+            </div>
+        </div>`;
+
+    document.getElementById('btnConfirmSale').onclick = async () => {
+        const res = await apiRequest(`${BASE}/conversations/${currentConvId}/cart/finalize/`, { method: 'POST' });
+        if (res.ok) {
+            showToast('Venda finalizada!', 'success');
+            closeConfirmSale();
+            closeCartModal();
+            loadCartBadge();
+        } else {
+            showToast(apiMessage(res.data), 'error');
+        }
+    };
+    closeCartModal();
+    document.getElementById('confirmSaleModal').style.display = 'flex';
+}
+
+async function clearCart() {
+    if (!currentConvId) return;
+    const confirmed = await confirmModal({
+        title: 'Limpar Carrinho',
+        message: 'Tem certeza que deseja limpar o carrinho?',
+        confirmText: 'Limpar',
+        danger: true
+    });
+    if (!confirmed) return;
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/cart/clear/`, { method: 'POST' });
+    if (res.ok) {
+        showToast('Carrinho limpo', 'success');
+        closeCartModal();
+        loadCartBadge();
+    } else {
+        showToast(apiMessage(res.data), 'error');
+    }
+}
+
+function closeCartModal() { document.getElementById('cartModal').style.display = 'none'; }
+function closeConfirmSale() { document.getElementById('confirmSaleModal').style.display = 'none'; }
+
+// ===== Global Badge =====
+function updateGlobalBadge(count) {
+    let badge = document.getElementById('livechatBadge');
+    let badgeMobile = document.getElementById('livechatBadgeMobile');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
+    }
+    if (badgeMobile) {
+        badgeMobile.textContent = count;
+        badgeMobile.style.display = count > 0 ? 'flex' : 'none';
+    }
+}
+
+// ===== Helpers =====
+function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function formatTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return 'Ontem';
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function autoResize() {
+    const el = document.getElementById('messageInput');
+    el.style.height = '36px';
+    el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+}
+</script>
+{% endblock %}

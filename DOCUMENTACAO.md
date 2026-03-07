@@ -68,8 +68,8 @@ autosell/
 │
 ├── wppmessages/               # App - Envio de Mensagens WhatsApp
 │   ├── models.py              # Model Message (FK para Contact, Product, Category)
-│   ├── views.py               # Gerenciador de mensagens + webhook
-│   ├── api_views.py           # Endpoint API de envio de mensagem
+│   ├── views.py               # Renderizacao da pagina + webhook
+│   ├── api_views.py           # Endpoints API (listagem + envio de mensagem)
 │   ├── forms.py               # MessageForm com tipo dinamico
 │   ├── urls.py                # Rotas /messages/
 │   └── migrations/
@@ -239,11 +239,14 @@ autosell/
 
 ### 5.5 Rotas de Mensagens (`wppmessages/urls.py`)
 
-| Rota                | View                | Nome                 | Metodo    |
-|---------------------|---------------------|----------------------|-----------|
-| `/messages/`        | `messages_manager`  | `messages_manager`   | GET/POST  |
-| `/messages/hook`    | `hook`              | `hook`               | POST      |
-| `/messages/api/send/` | `api_send_message`| `api_send_message`   | POST      |
+| Rota                  | View                | Nome                 | Metodo    |
+|-----------------------|---------------------|----------------------|-----------|
+| `/messages/`          | `messages_manager`  | `messages_manager`   | GET       |
+| `/messages/hook/`     | `hook`              | `hook`               | POST      |
+| `/messages/api/`      | `api_list_messages` | `api_list_messages`  | GET       |
+| `/messages/api/send/` | `api_send_message`  | `api_send_message`   | POST      |
+
+**API de listagem (`api_list_messages`):** Aceita parametros `page`, `per_page` (max 100) e `search` (busca por nome do contato, produto ou categoria). Retorna campo `stats` com `total_messages`, `total_sent` e `total_failed`.
 
 ---
 
@@ -265,6 +268,8 @@ Responsavel por enviar mensagens via WhatsApp usando a Evolution API.
 |-----------------------|------------------------------------------------|---------------------------------------|
 | `send_text_message`   | Envia mensagem de texto simples                | `POST /message/sendText/<instance>`   |
 | `send_media_message`  | Envia mensagem com midia (imagem, etc)         | `POST /message/sendMedia/<instance>`  |
+
+**Validacao de resposta HTTP:** Ambas as funcoes validam `response.status_code` apos a chamada. Se o status for >= 400, o erro e logado via `log_system_event` e a funcao retorna `None`. Apenas respostas com status 2xx sao tratadas como sucesso e retornam `response.json()`.
 
 **Formato da mensagem de produto enviada:**
 ```
@@ -337,16 +342,17 @@ Gerencia upload e exclusao de imagens no sistema de arquivos local (MEDIA_ROOT).
    Se todos falharam: status -> "failed" (HTTP 500)
 ```
 
-### 7.3 Webhook (`/messages/hook`)
+### 7.3 Webhook (`/messages/hook/`)
 
 ```
 1. Recebe requisicao POST externa (ex: Evolution API callback)
-2. Decodifica o body da requisicao
-3. Encaminha o conteudo como mensagem de texto WhatsApp
+2. Valida IP de origem contra EVOLUTION_SERVER_IP
+3. Decodifica o body da requisicao
+4. Encaminha o conteudo como mensagem de texto WhatsApp
    para o numero fixo: 5545998231771
 ```
 
-**Nota:** Este endpoint e `@csrf_exempt` - nao exige token CSRF.
+**Nota:** Este endpoint e `@csrf_exempt` e `@require_http_methods(["POST"])` - nao exige token CSRF e aceita apenas metodo POST.
 
 ### 7.4 CRUD de Produtos/Categorias com Upload de Imagem
 
@@ -394,7 +400,7 @@ Deletar:
 - `CSRF_COOKIE_SECURE` e `SESSION_COOKIE_SECURE` ativos em producao
 
 ### 8.3 XSS
-- Listagens de produtos e contatos usam funcao `escapeHtml()` no JS para sanitizar dados dinamicos (`name`, `phone`, `image_url`) antes de interpolar em template literals
+- Listagens de produtos, contatos e mensagens usam funcao `escapeHtml()` no JS para sanitizar dados dinamicos (`name`, `phone`, `image_url`, `contact`, `content`) antes de interpolar em template literals
 - Templates Django usam auto-escaping nativo nos formularios
 
 ### 8.4 Validacao de Entrada
@@ -552,8 +558,8 @@ O endpoint `/messages/hook` e `@csrf_exempt` mas valida o IP de origem contra `E
 ### Tratamento de erros no envio de categoria
 Quando o envio de mensagem por categoria falha para produtos individuais, o sistema conta as falhas e retorna status HTTP adequado: 200 (todos enviados), 207 (envio parcial) ou 500 (todos falharam).
 
-### Listagem de produtos, categorias e contatos
-As listagens de produtos (`products.html`), categorias (`categories.html`) e contatos (`contacts.html`) sao renderizadas inteiramente via JavaScript/API. As views apenas renderizam o template — todos os dados sao carregados via endpoints API. Todas seguem o padrao de Loading UX descrito na secao 12.1 (skeleton inline em stats, loading placeholder em listas, fade-in e animacao de numeros).
+### Listagem de produtos, categorias, contatos e mensagens
+As listagens de produtos (`products.html`), categorias (`categories.html`), contatos (`contacts.html`) e mensagens (`messages_manager.html`) sao renderizadas inteiramente via JavaScript/API. As views apenas renderizam o template — todos os dados sao carregados via endpoints API. Todas seguem o padrao de Loading UX descrito na secao 12.1 (skeleton inline em stats, loading placeholder em listas, fade-in e animacao de numeros).
 
 ### Templates unificados de formulario
 Os formularios de criacao e edicao de produto usam um unico template (`product_form.html`), e os de contato usam `contact_form.html`. Variaveis de contexto (`is_edit`, `page_title`, `page_subtitle`, `submit_label`) controlam o comportamento. No modo edicao, o formulario de produto exibe preview da imagem atual, e o de contato exibe secao "Informacoes Adicionais" (ID, data de criacao).

@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'contacts',
     'wppmessages',
     'systemlogs',
+    'livechat',
 ]
 
 MIDDLEWARE = [

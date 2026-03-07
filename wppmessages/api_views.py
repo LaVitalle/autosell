@@ -6,7 +6,7 @@ from products.models import Product
 from categories.models import Category
 from .models import Message
 from .forms import MessageForm
-from utils.evoapi import send_media_message, send_text_message
+from utils.evoapi import send_media_message, send_text_message, build_product_text, send_product_message
 from utils.api_response import api_success, api_error, api_form_error, api_exception
 
 
@@ -76,28 +76,11 @@ def api_list_messages(request):
 
 
 def _build_product_text(product):
-    parts = [f'*{product.name}*']
-    if product.description:
-        parts.append(f'_{product.description}_')
-    parts.append('')
-    if product.stock_active:
-        parts.append(f'*Restam:* {product.stock_quantity} unidades')
-    parts.append(f'*Preco:* R$ {product.price}')
-    return '\n'.join(parts)
+    return build_product_text(product)
 
 
 def _send_product_message(phone, product):
-    text = _build_product_text(product)
-    if product.image_url:
-        return send_media_message(
-            number=phone,
-            mediatype='image',
-            mimetype='image/png',
-            caption=text,
-            media=f'{settings.SITE_URL}{product.image_url}',
-            fileName=f'{product.name}.png'
-        )
-    return send_text_message(phone, text)
+    return send_product_message(phone, product)
 
 
 @login_required
