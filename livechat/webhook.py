@@ -14,13 +14,10 @@ from utils.api_response import log_system_event
 @csrf_exempt
 @require_http_methods(["POST"])
 def webhook(request):
-    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    remote = request.META.get('REMOTE_ADDR', '')
-    client_ip = forwarded.split(',')[0].strip() or remote
-    log_system_event('INFO', 'livechat.webhook',
-        f'IP check - REMOTE_ADDR: {remote} | X-Forwarded-For: {forwarded} | Resolved: {client_ip}')
-    allowed_ips = {settings.EVOLUTION_SERVER_IP, '127.0.0.1', '::1'}
+    client_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
+    allowed_ips = {settings.EVOLUTION_SERVER_IP, '127.0.0.1', '::1', '172.18.0.1', '10.11.0.4'}
     if client_ip not in allowed_ips:
+        log_system_event('WARNING', 'livechat.webhook', f'IP bloqueado: {client_ip}')
         return HttpResponseForbidden('Forbidden')
 
     try:
