@@ -21,13 +21,15 @@ class ContactForm(forms.ModelForm):
         if len(name) < 3:
             raise forms.ValidationError("O nome do contato deve ter mais de 3 caracteres")
         return name
-    
+
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
         if not phone:
             raise forms.ValidationError("O telefone do contato é obrigatório")
         phone = phone.replace("(", "").replace(")", "").replace("-", "").replace(" ", "").replace("+", "")
-        if len(phone) == 11 and not phone.startswith("55"):
+        if not phone.isdigit():
+            raise forms.ValidationError("O telefone deve conter apenas números")
+        if len(phone) == 11:
             phone = "55" + phone
         if len(phone) != 13:
             raise forms.ValidationError("O formato do telefone do contato deve ser 55 (XX) XXXXX-XXXX")

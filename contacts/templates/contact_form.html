@@ -7,16 +7,22 @@
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+                    {% if is_edit %}
                     <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
+                    {% else %}
+                    <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    {% endif %}
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">Editar Contato</h1>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Atualize as informações do contato</p>
+                    <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">{{ page_title }}</h1>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">{{ page_subtitle }}</p>
                 </div>
             </div>
-            <a href="{% url 'get_all_contacts' %}" 
+            <a href="{% url 'get_all_contacts' %}"
                class="sm:hidden inline-flex items-center px-2 py-1.5 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors duration-200">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -25,10 +31,10 @@
         </div>
     </div>
 
-    <!-- Edit Form -->
+    <!-- Form -->
     <form method="POST" class="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden flex-1 flex flex-col">
         {% csrf_token %}
-        
+
         <!-- Form Header -->
         <div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700">
             <h2 class="text-base font-semibold text-neutral-900 dark:text-white">Informações do Contato</h2>
@@ -37,20 +43,20 @@
         <!-- Form Content -->
         <div class="p-4 flex-1 overflow-y-auto">
             <div class="space-y-4">
-            
-            <!-- Grid Principal - Layout Compacto -->
+
+            <!-- Grid Principal -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Nome do Contato -->
                 <div class="md:col-span-2">
                     <label for="id_name" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
                         Nome do Contato *
                     </label>
-                    <input type="text" 
-                           name="name" 
-                           id="id_name" 
+                    <input type="text"
+                           name="name"
+                           id="id_name"
                            value="{{ form.name.value|default_if_none:'' }}"
                            required
-                           class="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors duration-200 text-sm" 
+                           class="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors duration-200 text-sm"
                            placeholder="Digite o nome do contato" />
                     {% if form.name.errors %}
                     <p class="text-red-600 dark:text-red-400 text-xs mt-1 flex items-center">
@@ -62,18 +68,18 @@
                     {% endif %}
                 </div>
 
-                <!-- Telefone do Contato -->
+                <!-- Telefone -->
                 <div class="md:col-span-2">
                     <label for="id_phone" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
                         Telefone *
                     </label>
-                    <input type="text" 
-                           name="phone" 
+                    <input type="tel"
+                           name="phone"
                            id="id_phone"
                            value="{{ form.phone.value|default_if_none:'' }}"
                            required
                            maxlength="15"
-                           class="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors duration-200 text-sm" 
+                           class="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors duration-200 text-sm"
                            placeholder="(11) 99999-9999" />
                     {% if form.phone.errors %}
                     <p class="text-red-600 dark:text-red-400 text-xs mt-1 flex items-center">
@@ -85,6 +91,7 @@
                     {% endif %}
                 </div>
 
+                {% if is_edit %}
                 <!-- Informações Adicionais -->
                 <div class="md:col-span-2 bg-neutral-50 dark:bg-neutral-700/30 rounded-lg p-4 border border-neutral-200 dark:border-neutral-600">
                     <h3 class="text-sm font-semibold text-neutral-900 dark:text-white mb-3">Informações Adicionais</h3>
@@ -107,6 +114,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
             </div>
         </div>
@@ -114,20 +122,27 @@
         <!-- Actions -->
         <div class="px-4 py-3 bg-neutral-50 dark:bg-neutral-700/30 border-t border-neutral-200 dark:border-neutral-700 flex-shrink-0">
             <div class="flex gap-3 justify-end">
-                <a href="{% url 'get_all_contacts' %}" 
+                <a href="{% url 'get_all_contacts' %}"
                    class="inline-flex items-center justify-center px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all duration-200 text-sm">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                     Cancelar
                 </a>
-                
-                <button type="submit" 
+
+                <button type="submit"
                         class="inline-flex items-center justify-center px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm hover:shadow-md text-sm">
+                    {% if is_edit %}
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Salvar Alterações
+                    {{ submit_label }}
+                    {% else %}
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    {{ submit_label }}
+                    {% endif %}
                 </button>
             </div>
         </div>
@@ -136,34 +151,47 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.querySelector('form');
-        const nameInput = document.getElementById('id_name');
-        const phoneInput = document.getElementById('id_phone');
-        const submitBtn = form.querySelector('button[type="submit"]');
-        const contactId = {{ contact.id }};
+        const isEdit = {{ is_edit|yesno:"true,false" }};
+        const contactId = {{ contact.id|default:"0" }};
+        const apiUrl = isEdit ? `/contacts/api/${contactId}/edit/` : '/contacts/api/create/';
+        const loadingText = isEdit ? 'Salvando...' : 'Criando...';
 
-        phoneInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length <= 11) {
-                if (value.length > 6) value = value.replace(/^(\d{2})(\d{4,5})(\d{4}).*/, '($1) $2-$3');
-                else if (value.length > 2) value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
-                else if (value.length > 0) value = value.replace(/^(\d*)/, '($1');
-            }
-            e.target.value = value;
-        });
+        const phoneInput = document.getElementById('id_phone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 0) {
+                    if (value.length <= 2) value = `(${value}`;
+                    else if (value.length <= 7) value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                    else value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7, 11)}`;
+                }
+                e.target.value = value;
+            });
+        }
+
+        const form = document.querySelector('form');
+        const submitBtn = form.querySelector('button[type="submit"]');
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             document.querySelectorAll('.error-message').forEach(el => el.remove());
 
+            const nameInput = document.getElementById('id_name');
             let isValid = true;
+
             if (!nameInput.value.trim() || nameInput.value.trim().length < 3) { isValid = false; showError(nameInput, 'O nome deve ter pelo menos 3 caracteres.'); }
             if (!phoneInput.value.trim()) { isValid = false; showError(phoneInput, 'O telefone é obrigatório.'); }
             if (!isValid) return;
 
-            setButtonLoading(submitBtn, true, 'Salvando...');
+            setButtonLoading(submitBtn, true, loadingText);
             const formData = new FormData(form);
-            const { ok, data } = await apiRequest(`/contacts/api/${contactId}/edit/`, { method: 'POST', body: formData, isFormData: true });
+
+            const { ok, data } = await apiRequest(apiUrl, {
+                method: 'POST',
+                body: formData,
+                isFormData: true,
+            });
+
             setButtonLoading(submitBtn, false);
 
             if (ok) {
@@ -184,7 +212,12 @@
         function showError(input, message) {
             const errorDiv = document.createElement('p');
             errorDiv.className = 'text-red-600 dark:text-red-400 text-xs mt-1 flex items-center error-message';
-            errorDiv.innerHTML = `<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>${message}`;
+            errorDiv.innerHTML = `
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                ${message}
+            `;
             input.parentNode.appendChild(errorDiv);
         }
     });

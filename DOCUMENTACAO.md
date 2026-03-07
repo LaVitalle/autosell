@@ -479,6 +479,32 @@ Models registrados no admin com configuracoes customizadas:
 - **Templates:** Django template engine com heranca (extends `dashboard.html`)
 - **Formularios:** Estilizados com classes Tailwind inline nos widgets dos forms
 
+### 12.1 Padrao de Animacoes e Loading UX
+
+Todas as paginas que carregam dados via API seguem um padrao obrigatorio de loading para evitar flashes visuais. Os utilitarios compartilhados estao definidos em `dashboard/templates/dashboard.html` (CSS no `<style>`, JS no `<script>`).
+
+**Elementos do padrao:**
+
+| Elemento | Onde se aplica | Comportamento |
+|----------|----------------|---------------|
+| Skeleton shimmer (`.skeleton`) | Stat cards, textos informativos | Gradiente animado pulsante no lugar do valor enquanto API responde |
+| Loading placeholder (`loadingPlaceholder()`) | Containers de tabela/cards | Spinner + "Carregando..." compacto (tamanho de uma linha), sem gerar elementos falsos |
+| Content fade-in (`applyFadeIn()`) | tbody, mobileCardsContainer | Fade + slide-up (0.3s) ao renderizar conteudo real |
+| Animate number (`animateNumber()`) | Stat cards numericos | Contagem animada (0.6s ease-out cubic) do valor atual ao novo |
+
+**Fluxo padrao por pagina:**
+1. HTML inicial: stat cards com skeletons inline, containers de lista com loading placeholder
+2. Antes da API: esconder tabela/cards, mostrar placeholder (sem scrollbar)
+3. Apos API: renderizar, esconder placeholder, aplicar fade-in, animar numeros
+4. Loads subsequentes (paginacao, busca): repetir passos 2-3
+
+**Regras criticas:**
+- Containers de lista usam `overflow-hidden` (nunca `overflow-y-auto`) para evitar scrollbar fantasma
+- Nunca gerar skeleton rows/cards que simulem dados — a quantidade real pode diferir, causando estranheza
+- `animateNumber` armazena o valor atual em `data-current-value`, permitindo transicoes suaves entre paginas sem reset a zero
+
+> Documentacao completa com exemplos de codigo em `autosell-complete-style-guide.md`, secao "Animacoes de Carregamento (Loading UX)".
+
 ---
 
 ## 13. Regras de Negocio - Controle de Estoque
@@ -513,8 +539,8 @@ O endpoint `/messages/hook` e `@csrf_exempt` mas valida o IP de origem contra `E
 ### Tratamento de erros no envio de categoria
 Quando o envio de mensagem por categoria falha para produtos individuais, o sistema conta as falhas e retorna status HTTP adequado: 200 (todos enviados), 207 (envio parcial) ou 500 (todos falharam).
 
-### Listagem de produtos
-A listagem de produtos (`products.html`) e renderizada inteiramente via JavaScript/API. A view `get_all_products` apenas renderiza o template vazio — todos os dados sao carregados via `api_list_products`.
+### Listagem de produtos e categorias
+As listagens de produtos (`products.html`) e categorias (`categories.html`) sao renderizadas inteiramente via JavaScript/API. As views apenas renderizam o template — todos os dados sao carregados via endpoints API. Ambas seguem o padrao de Loading UX descrito na secao 12.1 (skeleton inline em stats, loading placeholder em listas, fade-in e animacao de numeros).
 
 ### Template unificado de produto
 Os formularios de criacao e edicao de produto usam um unico template (`product_form.html`). Variaveis de contexto (`is_edit`, `page_title`, `submit_label`) controlam o comportamento. No modo edicao, o formulario exibe preview da imagem atual.

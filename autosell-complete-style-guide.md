@@ -1047,6 +1047,8 @@ Antes de considerar uma tela concluída, verificar:
 ```
 
 ### Transições e Animações
+
+#### Durações e Easing Padrão
 ```css
 /* Durações Padrão */
 .transition-fast { transition: all 0.2s ease-in-out; }          /* Hovers rápidos */
@@ -1062,6 +1064,175 @@ Antes de considerar uma tela concluída, verificar:
 .ease-out-cubic { transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
 .ease-in-out-cubic { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
 ```
+
+#### Animações de Carregamento (Loading UX)
+
+O sistema segue um padrão consistente para todas as páginas que carregam dados via API. O objetivo é eliminar "flashes" visuais (valores default como "0" ou "Carregando..." sendo substituídos abruptamente) e transmitir ao usuário que algo está acontecendo.
+
+##### Skeleton Shimmer (Elementos inline)
+Usado em stat cards e textos informativos que exibem valores numéricos ou textos curtos. O skeleton ocupa o espaço do valor real enquanto a API responde.
+
+```css
+/* Shimmer pulsante - gradiente animado */
+.skeleton {
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 0.25rem;
+}
+.dark .skeleton {
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 200% 100%;
+}
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+```
+
+**Uso no HTML:**
+```html
+<!-- Dentro de stat cards, no lugar do valor "0" -->
+<p id="statTotal"><span class="skeleton inline-block w-8 h-5 rounded">&nbsp;</span></p>
+
+<!-- Dentro de textos informativos, no lugar de "Mostrando 0-0 de 0" -->
+<span id="resultsInfo"><span class="skeleton inline-block w-40 h-4 rounded">&nbsp;</span></span>
+```
+
+**Regra:** Skeletons inline são usados apenas para valores pequenos (números, textos curtos). Nunca para listas ou tabelas inteiras.
+
+##### Loading Placeholder (Listas e tabelas)
+Usado nos containers de tabela/cards enquanto a API responde. Exibe um spinner centralizado com texto "Carregando..." ocupando o espaço de uma única linha da tabela, sem gerar scrollbar nem elementos falsos.
+
+```javascript
+// Função global definida em dashboard.html
+function loadingPlaceholder() {
+    return `
+    <div class="flex items-center justify-center gap-2 px-4 py-3">
+        <svg class="animate-spin w-4 h-4 text-neutral-400 dark:text-neutral-500" ...></svg>
+        <span class="text-sm text-neutral-400 dark:text-neutral-500">Carregando...</span>
+    </div>`;
+}
+```
+
+**Regra:** Nunca gerar linhas/cards skeleton que simulem dados. A quantidade de itens reais pode ser diferente, causando estranheza visual (ex: 5 skeletons mas só 1 item real). Usar sempre um placeholder único e compacto.
+
+**Regra:** Durante o loading, os containers de tabela e cards (`desktopTable`, `mobileCards`) devem ficar `hidden` para evitar scrollbar fantasma. O placeholder é injetado como um elemento irmão dentro do container pai.
+
+##### Content Fade In (Entrada de conteúdo)
+Após a API responder, o conteúdo real entra com uma animação suave de fade + slide-up.
+
+```css
+.content-fade-in {
+    animation: contentFadeIn 0.3s ease-out;
+}
+@keyframes contentFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+```
+
+```javascript
+// Função global para aplicar com suporte a re-trigger
+function applyFadeIn(element) {
+    element.classList.remove('content-fade-in');
+    void element.offsetWidth; // force reflow
+    element.classList.add('content-fade-in');
+    element.addEventListener('animationend',
+        () => element.classList.remove('content-fade-in'), { once: true });
+}
+```
+
+**Regra:** Aplicar `applyFadeIn()` no `tbody` e no `mobileCardsContainer` após renderizar o conteúdo. A remoção da classe no `animationend` permite re-trigger em loads subsequentes (paginação, busca).
+
+##### Animate Number (Contagem animada)
+Valores numéricos nos stat cards animam do valor atual até o novo valor com easing cubic.
+
+```javascript
+// Função global definida em dashboard.html
+function animateNumber(element, endValue, options = {}) {
+    const duration = options.duration || 600;      // 600ms padrão
+    const prefix = options.prefix || '';
+    const suffix = options.suffix || '';
+    const formatter = options.formatter || (v => Math.round(v).toLocaleString('pt-BR'));
+    const startValue = parseFloat(element.dataset.currentValue || '0') || 0;
+    element.dataset.currentValue = endValue;
+    // ... animação com ease-out cubic: 1 - Math.pow(1 - progress, 3)
+}
+```
+
+**Regra:** O valor atual é armazenado em `data-current-value` no elemento. No primeiro load, anima de 0 ao valor real. Em loads subsequentes, anima do valor anterior ao novo (sem reset a zero).
+
+**Formatadores:**
+| Stat | Formatter |
+|------|-----------|
+| Contadores simples (total, estoque, categorias) | `Math.round(v).toLocaleString('pt-BR')` (default) |
+| Valor monetário | `v => 'R$ ' + v.toFixed(2).replace('.', ',')` |
+| Categorias (com sufixo) | `{ suffix: ' categorias' }` ou `{ suffix: ' categoria' }` |
+
+##### Fluxo Completo de Loading (Padrão obrigatório)
+
+Toda página que carrega dados via API deve seguir este fluxo:
+
+```
+1. ESTADO INICIAL (HTML estático)
+   - Stat cards: skeletons inline no lugar dos valores
+   - Texto de resultados: skeleton inline
+   - Tabela/cards: containers hidden, placeholder de loading visível
+
+2. ANTES DA API (função showLoading)
+   - Esconder desktopTable e mobileCards (classList.add('hidden'))
+   - Mostrar loading placeholder (spinner + "Carregando...")
+   - Containers usam overflow-hidden (nunca overflow-y-auto)
+
+3. APÓS RESPOSTA DA API
+   - Renderizar conteúdo real no tbody e mobileCardsContainer
+   - Chamar hideLoading() — esconder placeholder, restaurar visibilidade
+   - Aplicar applyFadeIn() no tbody e mobileCardsContainer
+   - Chamar animateNumber() para cada stat card
+   - Atualizar texto de resultados e paginação
+
+4. LOADS SUBSEQUENTES (paginação, busca, mudança de itens por página)
+   - Repetir passos 2-3 (showLoading → API → hideLoading → fadeIn → animate)
+```
+
+##### Containers de Lista — Overflow
+
+```css
+/* CORRETO — overflow-hidden evita scrollbar fantasma */
+#desktopTable { overflow: hidden; }
+#mobileCards  { overflow: hidden; }
+
+/* ERRADO — overflow-y-auto causa flash de scrollbar */
+#desktopTable { overflow-y: auto; }  /* NÃO USAR */
+```
+
+**Regra:** Containers de tabela e cards mobile devem usar `overflow-hidden`. A paginação controla a quantidade de itens visíveis, então scroll vertical não é necessário.
+
+#### Catálogo Completo de Animações
+
+| Animação | Duração | Easing | Uso |
+|----------|---------|--------|-----|
+| `shimmer` | 1.5s infinite | linear | Skeletons inline (stat cards, textos) |
+| `contentFadeIn` | 0.3s | ease-out | Entrada de conteúdo após API |
+| `animateNumber` | 0.6s | ease-out cubic | Contagem em stat cards |
+| `toast-in` | 0.3s | ease-out | Entrada de toasts |
+| `toast-out` | 0.3s | ease-in | Saída de toasts |
+| `modal-overlay-in` | 0.2s | ease-out | Overlay de modais |
+| `modal-content-in` | 0.2s | ease-out | Conteúdo de modais |
+| `fade-slide-out` | 0.4s | ease-in | Remoção de linhas (delete) |
+| `animate-spin` | contínuo | linear | Spinner de loading |
+
+#### Funções Globais de UX (definidas em `dashboard.html`)
+
+| Função | Descrição |
+|--------|-----------|
+| `animateNumber(el, endValue, opts)` | Anima contagem numérica com ease-out cubic |
+| `loadingPlaceholder()` | Retorna HTML do spinner + "Carregando..." compacto |
+| `applyFadeIn(el)` | Aplica fade-in com suporte a re-trigger |
+| `showToast(msg, type, duration)` | Exibe notificação toast |
+| `confirmModal(opts)` | Exibe modal de confirmação (Promise) |
+| `setButtonLoading(btn, loading, text)` | Toggle de estado loading em botões |
 
 ---
 

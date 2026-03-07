@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+from django.db.models import Q, Count
 from .models import Contact
 from .forms import ContactForm
 from utils.api_response import api_success, api_error, api_form_error, api_exception
@@ -8,14 +9,22 @@ from utils.api_response import api_success, api_error, api_form_error, api_excep
 @login_required
 @require_http_methods(["GET"])
 def api_list_contacts(request):
-    page = int(request.GET.get('page', 1))
-    per_page = int(request.GET.get('per_page', 10))
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        per_page = min(100, max(1, int(request.GET.get('per_page', 10))))
+    except (ValueError, TypeError):
+        per_page = 10
     search = request.GET.get('search', '').strip()
 
     contacts = Contact.objects.all().order_by('-created_at')
 
     if search:
-        contacts = contacts.filter(name__icontains=search)
+        contacts = contacts.filter(Q(name__icontains=search) | Q(phone__icontains=search))
+
+    contacts = contacts.annotate(message_count=Count('wppmessages'))
 
     total = contacts.count()
     start = (page - 1) * per_page
@@ -29,9 +38,15 @@ def api_list_contacts(request):
             'name': c.name,
             'phone': c.phone,
             'created_at': c.created_at.isoformat() if c.created_at else '',
+            'message_count': c.message_count,
         })
 
     total_pages = (total + per_page - 1) // per_page
+
+    stats = {
+        'total_contacts': Contact.objects.count(),
+    }
+
     return api_success(
         data=data,
         message='Contatos listados com sucesso',
@@ -41,6 +56,7 @@ def api_list_contacts(request):
             'total_items': total,
             'total_pages': total_pages,
         },
+        stats=stats,
     )
 
 

@@ -15,20 +15,20 @@
                 <p class="text-xs md:text-sm text-neutral-600 dark:text-neutral-400">Gerencie sua lista de contatos</p>
             </div>
         </div>
-        
+
         <!-- Search and Actions -->
         <div class="flex items-center gap-3">
             <div class="relative flex-1 sm:flex-none">
-                <input 
-                    type="text" 
+                <input
+                    type="text"
                     id="searchInput"
-                    placeholder="Buscar contatos..." 
+                    placeholder="Buscar contatos..."
                     class="w-full sm:w-64 px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 transition-colors duration-200">
                 <svg class="absolute right-3 top-2.5 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
             </div>
-            <a href="{% url 'create_contact' %}" id="addContactBtn" 
+            <a href="{% url 'create_contact' %}" id="addContactBtn"
                class="inline-flex items-center justify-center px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm hover:shadow-md text-sm">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -39,22 +39,13 @@
         </div>
     </div>
 
-    <!-- Card de Estatísticas Simplificado -->
+    <!-- Stat Card -->
     <div class="grid grid-cols-1 gap-3 mb-4">
-        <!-- Total de Contatos -->
         <div class="bg-white dark:bg-neutral-800 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-xs font-medium text-neutral-600 dark:text-neutral-400">Total de Contatos</p>
-                    <p class="text-lg font-bold text-neutral-900 dark:text-white">
-                        {% if contacts|length == 0 %}
-                            Nenhum contato
-                        {% elif contacts|length == 1 %}
-                            1 contato
-                        {% else %}
-                            {{ contacts|length }} contatos
-                        {% endif %}
-                    </p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statTotal"><span class="skeleton inline-block w-8 h-5 rounded">&nbsp;</span></p>
                 </div>
                 <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,15 +61,14 @@
         <div class="px-4 md:px-6 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
             <h3 class="text-base font-semibold text-neutral-900 dark:text-white">Lista de Contatos</h3>
             <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <span id="resultsInfo">Mostrando 0-0 de 0 contatos</span>
+                <span id="resultsInfo"><span class="skeleton inline-block w-40 h-4 rounded">&nbsp;</span></span>
             </div>
         </div>
-        
+
         <!-- Contacts Container -->
         <div class="flex-1 overflow-hidden" id="contactsContainer">
-            {% if contacts %}
             <!-- Desktop Table -->
-            <div class="hidden md:block h-full overflow-y-auto" id="desktopTable">
+            <div class="hidden md:block h-full overflow-hidden" id="desktopTable">
                 <table class="w-full">
                     <thead class="bg-neutral-50 dark:bg-neutral-700 sticky top-0">
                         <tr>
@@ -97,176 +87,19 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700" id="contactsTableBody">
-                        {% for contact in contacts %}
-                        <tr class="contact-row hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150" 
-                            data-name="{{ contact.name|lower }}" 
-                            data-phone="{{ contact.phone }}" 
-                            data-id="{{ contact.id }}">
-                            <td class="px-4 py-3">
-                                <div class="flex items-center">
-                                    <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-600 rounded-full flex items-center justify-center mr-3">
-                                        <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm font-medium text-neutral-900 dark:text-white">{{ contact.name }}</div>
-                                        <div class="text-xs text-neutral-500 dark:text-neutral-400">ID: {{ contact.id }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="text-sm text-neutral-900 dark:text-white">
-                                    {% if contact.phone|length == 13 %}
-                                        +{{ contact.phone|slice:":2" }} ({{ contact.phone|slice:"2:4" }}) {{ contact.phone|slice:"4:9" }}-{{ contact.phone|slice:"9:" }}
-                                    {% else %}
-                                        {{ contact.phone }}
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="text-sm text-neutral-500 dark:text-neutral-400">
-                                    {{ contact.created_at|date:"d/m/Y H:i" }}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <div class="flex items-center justify-end space-x-1">
-                                    <button onclick="viewContact({{ contact.id }})" 
-                                       class="inline-flex items-center px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200"
-                                       title="Ver detalhes do contato">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                        Ver
-                                    </button>
-                                    <a href="{% url 'edit_contact' contact.id %}" 
-                                       class="inline-flex items-center px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200"
-                                       title="Editar contato">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                        Editar
-                                    </a>
-                                    <button onclick="sendToContact({{ contact.id }})" 
-                                       class="inline-flex items-center px-2 py-1.5 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-400 bg-white dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200"
-                                       title="Enviar mensagem">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                                        </svg>
-                                        Enviar
-                                    </button>
-                                    <a href="{% url 'delete_contact' contact.id %}" 
-                                       class="inline-flex items-center px-2 py-1.5 border border-red-300 dark:border-red-600 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
-                                       title="Excluir contato">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                        Excluir
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
                     </tbody>
                 </table>
             </div>
 
             <!-- Mobile Cards -->
-            <div class="md:hidden h-full overflow-y-auto" id="mobileCards">
+            <div class="md:hidden h-full overflow-hidden" id="mobileCards">
                 <div class="divide-y divide-neutral-200 dark:divide-neutral-700" id="mobileCardsContainer">
-                    {% for contact in contacts %}
-                    <div class="contact-card p-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150" 
-                         data-name="{{ contact.name|lower }}" 
-                         data-phone="{{ contact.phone }}" 
-                         data-id="{{ contact.id }}">
-                        <div class="flex items-start space-x-3">
-                            <div class="w-10 h-10 bg-neutral-100 dark:bg-neutral-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                </svg>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-start justify-between">
-                                    <div class="flex-1">
-                                        <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">{{ contact.name }}</h4>
-                                        <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                                            {% if contact.phone|length == 13 %}
-                                                +{{ contact.phone|slice:":2" }} ({{ contact.phone|slice:"2:4" }}) {{ contact.phone|slice:"4:9" }}-{{ contact.phone|slice:"9:" }}
-                                            {% else %}
-                                                {{ contact.phone }}
-                                            {% endif %}
-                                        </p>
-                                        <div class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                                            {{ contact.created_at|date:"d/m/Y H:i" }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center mt-3 space-x-1">
-                                    <button onclick="viewContact({{ contact.id }})" 
-                                       class="inline-flex items-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200"
-                                       title="Ver detalhes">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                        Ver
-                                    </button>
-                                    <a href="{% url 'edit_contact' contact.id %}" 
-                                       class="inline-flex items-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200"
-                                       title="Editar">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                        Editar
-                                    </a>
-                                    <button onclick="sendToContact({{ contact.id }})" 
-                                       class="inline-flex items-center px-2 py-1 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-400 bg-white dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200"
-                                       title="Enviar">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                                        </svg>
-                                        Enviar
-                                    </button>
-                                    <a href="{% url 'delete_contact' contact.id %}" 
-                                       class="inline-flex items-center px-2 py-1 border border-red-300 dark:border-red-600 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
-                                       title="Excluir">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                        Excluir
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
                 </div>
             </div>
-            {% else %}
-            <!-- Empty State -->
-            <div class="text-center py-12 flex flex-col items-center justify-center h-full">
-                <div class="w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                    </div>
-                <h3 class="text-lg font-medium text-neutral-900 dark:text-white mb-2">Nenhum contato encontrado</h3>
-                <p class="text-neutral-600 dark:text-neutral-400 mb-6">Comece criando seu primeiro contato</p>
-                <a href="{% url 'create_contact' %}" 
-                   class="inline-flex items-center justify-center px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm hover:shadow-md text-sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    Criar Contato
-                </a>
-            </div>
-            {% endif %}
         </div>
 
         <!-- Pagination Controls -->
-        {% if contacts %}
-        <div class="px-4 md:px-6 py-3 border-t border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div class="px-4 md:px-6 py-3 border-t border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3" id="paginationControls">
             <!-- Controle de Itens por Página -->
             <div class="flex items-center justify-center sm:justify-start gap-2">
                 <span class="text-xs text-neutral-600 dark:text-neutral-400">Itens por página:</span>
@@ -276,7 +109,7 @@
                     <option value="25">25</option>
                 </select>
             </div>
-            
+
             <!-- Navegação de Páginas -->
             <div class="flex items-center justify-center gap-2">
                 <button id="prevPage" class="inline-flex items-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
@@ -285,11 +118,10 @@
                     </svg>
                     Anterior
                 </button>
-                
+
                 <div id="pageNumbers" class="flex items-center gap-1">
-                    <!-- Page numbers will be generated by JavaScript -->
                 </div>
-                
+
                 <button id="nextPage" class="inline-flex items-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                     Próxima
                     <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,7 +130,6 @@
                 </button>
             </div>
         </div>
-        {% endif %}
     </div>
 </div>
 
@@ -308,14 +139,13 @@
         <div class="p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-neutral-900 dark:text-white">Detalhes do Contato</h3>
-                <button onclick="closeModal()" class="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200">
+                <button onclick="closeContactModal()" class="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
             <div id="modalContent">
-                <!-- Content will be loaded here -->
             </div>
         </div>
     </div>
@@ -326,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     let itemsPerPage = 5;
     let searchTimeout = null;
+    let contactsCache = [];
     const searchInput = document.getElementById('searchInput');
     const resultsInfo = document.getElementById('resultsInfo');
     const itemsPerPageSelect = document.getElementById('itemsPerPage');
@@ -333,32 +164,97 @@ document.addEventListener('DOMContentLoaded', function() {
     const nextButton = document.getElementById('nextPage');
     const pageNumbers = document.getElementById('pageNumbers');
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function formatPhone(phone) {
+        if (phone && phone.length === 13) return `+${phone.slice(0,2)} (${phone.slice(2,4)}) ${phone.slice(4,9)}-${phone.slice(9)}`;
+        return escapeHtml(phone);
+    }
+
+    function showLoading() {
+        const container = document.getElementById('contactsContainer');
+        if (!container) return;
+        const desktopTable = document.getElementById('desktopTable');
+        const mobileCards = document.getElementById('mobileCards');
+        if (desktopTable) desktopTable.classList.add('hidden');
+        if (mobileCards) mobileCards.classList.add('hidden');
+        let placeholder = container.querySelector('.loading-placeholder');
+        if (!placeholder) {
+            placeholder = document.createElement('div');
+            placeholder.className = 'loading-placeholder';
+            placeholder.innerHTML = loadingPlaceholder();
+            container.appendChild(placeholder);
+        }
+        placeholder.classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        const container = document.getElementById('contactsContainer');
+        if (!container) return;
+        const placeholder = container.querySelector('.loading-placeholder');
+        if (placeholder) placeholder.classList.add('hidden');
+        const desktopTable = document.getElementById('desktopTable');
+        const mobileCards = document.getElementById('mobileCards');
+        if (desktopTable) desktopTable.className = 'hidden md:block h-full overflow-hidden';
+        if (mobileCards) mobileCards.className = 'md:hidden h-full overflow-hidden';
+    }
+
+    showLoading();
     loadContacts();
 
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => { currentPage = 1; loadContacts(); }, 300);
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                loadContacts();
+            }, 300);
         });
     }
+
     if (itemsPerPageSelect) {
-        itemsPerPageSelect.addEventListener('change', function() { itemsPerPage = parseInt(this.value); currentPage = 1; loadContacts(); });
+        itemsPerPageSelect.addEventListener('change', function() {
+            itemsPerPage = parseInt(this.value);
+            currentPage = 1;
+            loadContacts();
+        });
     }
-    if (prevButton) prevButton.addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadContacts(); } });
-    if (nextButton) nextButton.addEventListener('click', () => { currentPage++; loadContacts(); });
+
+    if (prevButton) {
+        prevButton.addEventListener('click', function() {
+            if (currentPage > 1) { currentPage--; loadContacts(); }
+        });
+    }
+
+    if (nextButton) {
+        nextButton.addEventListener('click', function() {
+            currentPage++;
+            loadContacts();
+        });
+    }
 
     async function loadContacts() {
         const search = searchInput ? searchInput.value.trim() : '';
+        showLoading();
         const { ok, data } = await apiRequest(`/contacts/api/?page=${currentPage}&per_page=${itemsPerPage}&search=${encodeURIComponent(search)}`);
-        if (!ok) return;
+        if (!ok) { hideLoading(); return; }
+
+        contactsCache = data.data;
         renderTable(data.data);
         renderCards(data.data);
+        hideLoading();
         updatePagination(data);
-    }
+        updateStats(data.stats);
 
-    function formatPhone(phone) {
-        if (phone && phone.length === 13) return `+${phone.slice(0,2)} (${phone.slice(2,4)}) ${phone.slice(4,9)}-${phone.slice(9)}`;
-        return phone;
+        const tbody = document.getElementById('contactsTableBody');
+        if (tbody) applyFadeIn(tbody);
+        const mobileContainer = document.getElementById('mobileCardsContainer');
+        if (mobileContainer) applyFadeIn(mobileContainer);
     }
 
     function renderTable(contacts) {
@@ -371,24 +267,31 @@ document.addEventListener('DOMContentLoaded', function() {
             container.innerHTML = `
                 <div class="text-center py-12 flex flex-col items-center justify-center h-full">
                     <div class="w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        <svg class="w-8 h-8 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
                     </div>
                     <h3 class="text-lg font-medium text-neutral-900 dark:text-white mb-2">Nenhum contato encontrado</h3>
                     <p class="text-neutral-600 dark:text-neutral-400 mb-6">Comece criando seu primeiro contato</p>
-                    <a href="/contacts/create" class="inline-flex items-center px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg text-sm">Criar Contato</a>
+                    <a href="/contacts/create/" class="inline-flex items-center px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Criar Contato
+                    </a>
                 </div>`;
             return;
         }
 
+        const safeName = (c) => escapeHtml(c.name);
+
         tbody.innerHTML = contacts.map(c => `
-            <tr class="contact-row hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150" data-id="${c.id}" data-phone="${c.phone}">
+            <tr class="contact-row hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150" data-id="${c.id}">
                 <td class="px-4 py-3">
                     <div class="flex items-center">
                         <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-600 rounded-full flex items-center justify-center mr-3">
                             <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         </div>
                         <div>
-                            <div class="text-sm font-medium text-neutral-900 dark:text-white">${c.name}</div>
+                            <div class="text-sm font-medium text-neutral-900 dark:text-white">${safeName(c)}</div>
                             <div class="text-xs text-neutral-500 dark:text-neutral-400">ID: ${c.id}</div>
                         </div>
                     </div>
@@ -397,19 +300,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td class="px-4 py-3"><div class="text-sm text-neutral-500 dark:text-neutral-400">${c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : ''}</div></td>
                 <td class="px-4 py-3 text-right">
                     <div class="flex items-center justify-end space-x-1">
-                        <button onclick="viewContact(${c.id}, '${c.name.replace(/'/g, "\\'")}', '${c.phone}')" class="inline-flex items-center px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">
+                        <button onclick="viewContact(${c.id})" class="inline-flex items-center px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             Ver
                         </button>
-                        <a href="/contacts/edit/${c.id}" class="inline-flex items-center px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors">
+                        <a href="/contacts/edit/${c.id}/" class="inline-flex items-center px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             Editar
                         </a>
-                        <button onclick="sendToContact('${c.phone}')" class="inline-flex items-center px-2 py-1.5 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-400 bg-white dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                        <button onclick="sendToContact('${escapeHtml(c.phone)}')" class="inline-flex items-center px-2 py-1.5 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-400 bg-white dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                             Enviar
                         </button>
-                        <button onclick="deleteContact(${c.id}, '${c.name.replace(/'/g, "\\'")}')" class="inline-flex items-center px-2 py-1.5 border border-red-300 dark:border-red-600 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                        <button onclick="deleteContact(${c.id}, '${safeName(c).replace(/'/g, "\\'")}')" class="inline-flex items-center px-2 py-1.5 border border-red-300 dark:border-red-600 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             Excluir
                         </button>
@@ -422,19 +325,22 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderCards(contacts) {
         const container = document.getElementById('mobileCardsContainer');
         if (!container) return;
+
+        const safeName = (c) => escapeHtml(c.name);
+
         container.innerHTML = contacts.map(c => `
-            <div class="contact-card p-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors" data-id="${c.id}" data-phone="${c.phone}">
+            <div class="contact-card p-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-150" data-id="${c.id}">
                 <div class="flex items-start space-x-3">
                     <div class="w-10 h-10 bg-neutral-100 dark:bg-neutral-600 rounded-full flex items-center justify-center flex-shrink-0">
                         <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">${c.name}</h4>
+                        <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">${safeName(c)}</h4>
                         <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">${formatPhone(c.phone)}</p>
                         <div class="flex items-center mt-3 space-x-1">
-                            <a href="/contacts/edit/${c.id}" class="inline-flex items-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800">Editar</a>
-                            <button onclick="sendToContact('${c.phone}')" class="inline-flex items-center px-2 py-1 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-400 bg-white dark:bg-neutral-800">Enviar</button>
-                            <button onclick="deleteContact(${c.id}, '${c.name.replace(/'/g, "\\'")}')" class="inline-flex items-center px-2 py-1 border border-red-300 dark:border-red-600 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800">Excluir</button>
+                            <a href="/contacts/edit/${c.id}/" class="inline-flex items-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800">Editar</a>
+                            <button onclick="sendToContact('${escapeHtml(c.phone)}')" class="inline-flex items-center px-2 py-1 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-400 bg-white dark:bg-neutral-800">Enviar</button>
+                            <button onclick="deleteContact(${c.id}, '${safeName(c).replace(/'/g, "\\'")}')" class="inline-flex items-center px-2 py-1 border border-red-300 dark:border-red-600 text-xs font-medium rounded text-red-700 dark:text-red-400 bg-white dark:bg-neutral-800">Excluir</button>
                         </div>
                     </div>
                 </div>
@@ -442,28 +348,45 @@ document.addEventListener('DOMContentLoaded', function() {
         `).join('');
     }
 
+    function updateStats(stats) {
+        if (!stats) return;
+        const el = document.getElementById('statTotal');
+        if (el) animateNumber(el, stats.total_contacts);
+    }
+
     function updatePagination(data) {
         const pg = data.page;
+        const paginationEl = document.getElementById('paginationControls');
+        if (paginationEl) paginationEl.style.display = (pg && pg.total_items > 0) ? '' : 'none';
+
         if (resultsInfo) {
-            if (!pg || pg.total_items === 0) { resultsInfo.textContent = 'Nenhum contato encontrado'; }
-            else {
+            if (!pg || pg.total_items === 0) {
+                resultsInfo.textContent = 'Nenhum contato encontrado';
+            } else {
                 const start = (pg.current - 1) * pg.per_page + 1;
                 const end = Math.min(pg.current * pg.per_page, pg.total_items);
                 resultsInfo.textContent = `Mostrando ${start}-${end} de ${pg.total_items} contatos`;
             }
         }
+
         if (prevButton) prevButton.disabled = !pg || pg.current <= 1;
         if (nextButton) nextButton.disabled = !pg || pg.current >= pg.total_pages;
+
         if (pageNumbers) {
             pageNumbers.innerHTML = '';
             if (pg && pg.total_pages > 1) {
                 let startPage = Math.max(1, pg.current - 2);
                 let endPage = Math.min(pg.total_pages, startPage + 4);
                 if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
                 for (let i = startPage; i <= endPage; i++) {
                     const btn = document.createElement('button');
                     btn.textContent = i;
-                    btn.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${i === pg.current ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'}`;
+                    btn.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${
+                        i === pg.current
+                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                            : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'
+                    }`;
                     btn.addEventListener('click', () => { currentPage = i; loadContacts(); });
                     pageNumbers.appendChild(btn);
                 }
@@ -471,36 +394,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Delete contact via modal
     window.deleteContact = async function(id, name) {
+        const contact = contactsCache.find(c => c.id === id);
+        let message = `Tem certeza que deseja excluir "${name}"? Esta ação não pode ser desfeita.`;
+        if (contact && contact.message_count > 0) {
+            message = `Este contato possui ${contact.message_count} mensagem(ns) vinculada(s). ` + message;
+        }
+
         const confirmed = await confirmModal({
             title: 'Excluir Contato',
-            message: `Tem certeza que deseja excluir "${name}"? Esta ação não pode ser desfeita.`,
+            message: message,
             confirmText: 'Excluir',
         });
+
         if (!confirmed) return;
+
         const { ok, data } = await apiRequest(`/contacts/api/${id}/delete/`, { method: 'POST' });
         if (ok) {
             const row = document.querySelector(`tr[data-id="${id}"], .contact-card[data-id="${id}"]`);
-            if (row) { row.classList.add('row-removing'); row.addEventListener('animationend', () => loadContacts()); }
-            else loadContacts();
+            if (row) {
+                row.classList.add('row-removing');
+                row.addEventListener('animationend', () => loadContacts());
+            } else {
+                loadContacts();
+            }
             showToast(apiMessage(data), 'success');
-        } else { showToast(apiMessage(data), 'error'); }
+        } else {
+            showToast(apiMessage(data), 'error');
+        }
     };
 
-    window.viewContact = function(id, name, phone) {
+    window.viewContact = function(id) {
+        const contact = contactsCache.find(c => c.id === id);
+        if (!contact) return;
         const modal = document.getElementById('contactModal');
         const modalContent = document.getElementById('modalContent');
-        const fp = phone.length === 13 ? `+${phone.slice(0,2)} (${phone.slice(2,4)}) ${phone.slice(4,9)}-${phone.slice(9)}` : phone;
+        const safeName = escapeHtml(contact.name);
+        const fp = formatPhone(contact.phone);
         modalContent.innerHTML = `
             <div class="space-y-4">
-                <div><label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Nome</label><p class="text-sm text-neutral-900 dark:text-white">${name}</p></div>
+                <div><label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Nome</label><p class="text-sm text-neutral-900 dark:text-white">${safeName}</p></div>
                 <div><label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Telefone</label><p class="text-sm text-neutral-900 dark:text-white">${fp}</p></div>
                 <div><label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300">ID</label><p class="text-sm text-neutral-900 dark:text-white">${id}</p></div>
             </div>
             <div class="flex justify-end mt-6 space-x-2">
                 <button onclick="closeContactModal()" class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700">Fechar</button>
-                <a href="/contacts/edit/${id}" class="px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100">Editar</a>
+                <a href="/contacts/edit/${id}/" class="px-4 py-2 text-sm font-medium text-white bg-neutral-900 dark:bg-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100">Editar</a>
             </div>`;
         modal.classList.remove('hidden');
         modal.style.display = 'flex';
