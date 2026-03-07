@@ -34,11 +34,14 @@ autosell/
 ├── products/                  # App - Gestao de Produtos
 │   ├── models.py              # Model Product
 │   ├── views.py               # CRUD completo de produtos (templates)
-│   ├── api_views.py           # Endpoints API (JSON)
+│   ├── api_views.py           # Endpoints API (JSON) com stats
 │   ├── forms.py               # ProductForm com validacoes
-│   ├── urls.py                # Rotas /products/
+│   ├── urls.py                # Rotas /products/ (com trailing slashes)
 │   ├── admin.py               # Registro no Django Admin
 │   ├── templates/
+│   │   ├── products.html      # Listagem (render via JS/API)
+│   │   ├── product.html       # Detalhe do produto
+│   │   ├── product_form.html  # Formulario unificado (criar/editar)
 │   │   └── confirm_delete.html
 │   └── migrations/
 │
@@ -102,8 +105,8 @@ autosell/
 | `description`    | TextField(255)          | Opcional (null=True)          |
 | `price`          | DecimalField(10,2)      | Obrigatorio                   |
 | `image_url`      | CharField(500)          | Opcional (null=True, blank=True) |
-| `stock_active`   | BooleanField            | Default: False                |
-| `stock_quantity` | IntegerField            | Default: 0                    |
+| `stock_active`   | BooleanField            | Default: False. Indica producao limitada (controle de estoque ativo) |
+| `stock_quantity` | IntegerField            | Default: 0. Quantidade disponivel quando stock_active=True |
 | `updated_at`     | DateTimeField           | auto_now                      |
 | `created_at`     | DateTimeField           | auto_now_add                  |
 
@@ -187,17 +190,19 @@ autosell/
 
 ### 5.2 Rotas de Produtos (`products/urls.py`)
 
-| Rota                          | View                   | Nome               | Metodo    |
-|-------------------------------|------------------------|---------------------|-----------|
-| `/products/`                  | `get_all_products`     | `get_all_products`  | GET       |
-| `/products/<id>`              | `get_by_id`            | `get_by_id`         | GET       |
-| `/products/create`            | `create_product`       | `create_product`    | GET/POST  |
-| `/products/delete/<id>`       | `delete_product`       | `delete_by_id`      | GET/POST  |
-| `/products/edit/<id>`         | `edit_product`         | `edit_product`      | GET/POST  |
-| `/products/api/`              | `api_list_products`    | `api_list_products` | GET       |
-| `/products/api/create/`       | `api_create_product`   | `api_create_product`| POST      |
-| `/products/api/<id>/edit/`    | `api_edit_product`     | `api_edit_product`  | POST      |
-| `/products/api/<id>/delete/`  | `api_delete_product`   | `api_delete_product`| POST      |
+| Rota                           | View                   | Nome               | Metodo    |
+|--------------------------------|------------------------|---------------------|-----------|
+| `/products/`                   | `get_all_products`     | `get_all_products`  | GET       |
+| `/products/<id>/`              | `get_by_id`            | `get_by_id`         | GET       |
+| `/products/create/`            | `create_product`       | `create_product`    | GET/POST  |
+| `/products/delete/<id>/`       | `delete_product`       | `delete_by_id`      | GET/POST  |
+| `/products/edit/<id>/`         | `edit_product`         | `edit_product`      | GET/POST  |
+| `/products/api/`               | `api_list_products`    | `api_list_products` | GET       |
+| `/products/api/create/`        | `api_create_product`   | `api_create_product`| POST      |
+| `/products/api/<id>/edit/`     | `api_edit_product`     | `api_edit_product`  | POST      |
+| `/products/api/<id>/delete/`   | `api_delete_product`   | `api_delete_product`| POST      |
+
+**API de listagem (`api_list_products`):** Aceita parametros `page`, `per_page` (max 100) e `search`. Retorna campo `stats` com `total_products`, `total_value`, `with_stock_control` e `total_categories`.
 
 ### 5.3 Rotas de Categorias (`categories/urls.py`)
 
@@ -277,9 +282,11 @@ Gerencia upload e exclusao de imagens no sistema de arquivos local (MEDIA_ROOT).
 
 | Funcao           | Descricao                                              |
 |------------------|--------------------------------------------------------|
-| `upload_file`    | Salva arquivo em MEDIA_ROOT e retorna path relativo (`/media/...`) |
+| `upload_file`    | Valida extensao, salva arquivo em MEDIA_ROOT e retorna path relativo (`/media/...`). Retorna `None` se extensao invalida. |
 | `delete_file`    | Deleta arquivo do disco pelo path relativo             |
-| `clean_file_name`| Remove caracteres especiais/acentos do nome do arquivo |
+| `clean_file_name`| Remove caracteres especiais/acentos via `unicodedata.normalize('NFKD')` |
+
+**Extensoes permitidas:** `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
 
 **Convencao de nomes de arquivo:**
 - Produtos: `media/products/<uuid><nome_original>`
@@ -313,11 +320,15 @@ Gerencia upload e exclusao de imagens no sistema de arquivos local (MEDIA_ROOT).
 ```
 1. Usuario seleciona tipo "category" + contato + categoria
 2. Sistema cria registro Message com status "pending"
-3. Itera sobre TODOS os produtos da categoria:
+3. Filtra produtos da categoria, EXCLUINDO esgotados:
+   - Exclui produtos com stock_active=True e stock_quantity=0 (esgotados)
+   - Produtos com stock_active=False (producao continua) sao sempre incluidos
+4. Itera sobre os produtos filtrados:
    - Para cada produto, envia mensagem individual (midia ou texto)
-   - Erros individuais sao ignorados (continue)
-4. Se todos enviados: status -> "sent"
-   Se erro geral: status -> "failed"
+   - Erros individuais sao contados
+5. Se todos enviados: status -> "sent" (HTTP 200)
+   Se envio parcial: status -> "sent" (HTTP 207)
+   Se todos falharam: status -> "failed" (HTTP 500)
 ```
 
 ### 7.3 Webhook (`/messages/hook`)
@@ -333,10 +344,13 @@ Gerencia upload e exclusao de imagens no sistema de arquivos local (MEDIA_ROOT).
 
 ### 7.4 CRUD de Produtos/Categorias com Upload de Imagem
 
+Produtos usam um template unificado (`product_form.html`) para criacao e edicao. O formulario de edicao exibe preview da imagem atual.
+
 ```
 Criar:
 1. Usuario preenche formulario + seleciona imagem (opcional)
 2. Se imagem fornecida:
+   - Valida extensao (jpg, jpeg, png, gif, webp)
    - Gera nome unico: <tipo>/<uuid><nome_original>
    - Salva arquivo em MEDIA_ROOT
    - Salva path relativo (/media/...) no campo image_url
@@ -344,11 +358,13 @@ Criar:
 
 Editar:
 1. Carrega dados existentes no formulario
-2. Se nova imagem fornecida:
+2. Exibe preview da imagem atual (se existir)
+3. Se nova imagem fornecida:
+   - Valida extensao
    - Upload da nova imagem para MEDIA_ROOT
    - Deleta imagem anterior do disco
    - Atualiza image_url
-3. Salva alteracoes
+4. Salva alteracoes
 
 Deletar:
 1. Exibe pagina de confirmacao
@@ -371,11 +387,21 @@ Deletar:
 - CSRF habilitado em todos os formularios (exceto webhook)
 - `CSRF_COOKIE_SECURE` e `SESSION_COOKIE_SECURE` ativos em producao
 
-### 8.3 SSL/HTTPS
+### 8.3 XSS
+- Listagem de produtos usa funcao `escapeHtml()` no JS para sanitizar dados dinamicos (`name`, `image_url`) antes de interpolar em template literals
+- Templates Django usam auto-escaping nativo nos formularios
+
+### 8.4 Validacao de Entrada
+- Parametros de paginacao (`page`, `per_page`) sao validados como inteiros com fallback seguro
+- `per_page` limitado a maximo de 100 para evitar abuso
+- Upload de imagens restrito a extensoes permitidas (jpg, jpeg, png, gif, webp)
+- Views de detalhe usam `get_object_or_404` para IDs inexistentes
+
+### 8.5 SSL/HTTPS
 - `SECURE_PROXY_SSL_HEADER` configurado para proxy reverso
 - `SECURE_SSL_REDIRECT` ativo em producao
 
-### 8.4 Variaveis de Ambiente
+### 8.6 Variaveis de Ambiente
 - Secrets gerenciados via `python-decouple` (arquivo `.env`)
 - `.env` no `.gitignore`
 
@@ -455,13 +481,43 @@ Models registrados no admin com configuracoes customizadas:
 
 ---
 
-## 13. Observacoes e Pontos de Atencao
+## 13. Regras de Negocio - Controle de Estoque
+
+O campo `stock_active` NAO define se o produto esta ativo/inativo. Ele controla se o produto tem **producao limitada** (controle de estoque).
+
+### Semantica dos campos:
+- `stock_active=False` — Producao continua. Produto sempre disponivel.
+- `stock_active=True` — Producao limitada. Quantidade controlada por `stock_quantity`.
+- `stock_active=True` + `stock_quantity=0` — Produto esgotado.
+
+### Exibicao na listagem:
+| Estado | Badge | Cor |
+|--------|-------|-----|
+| `stock_active=False` | "Continuo" | Azul |
+| `stock_active=True`, `quantity > 0` | "X unidades" | Verde |
+| `stock_active=True`, `quantity = 0` | "Esgotado" | Vermelho |
+
+### Comportamento no envio por categoria:
+Produtos com `stock_active=True` e `stock_quantity=0` (esgotados) sao **automaticamente pulados** no envio de mensagens por categoria. Produtos com producao continua (`stock_active=False`) sao sempre enviados.
+
+### Validacao de preco:
+O preco deve ser **maior que zero** — tanto no frontend (validacao JS) quanto no backend (`clean_price`).
+
+---
+
+## 14. Observacoes e Pontos de Atencao
 
 ### Webhook sem autenticacao
-O endpoint `/messages/hook` e `@csrf_exempt` e nao possui autenticacao, e envia o body recebido diretamente para um numero fixo. Isso pode ser explorado para spam.
+O endpoint `/messages/hook` e `@csrf_exempt` mas valida o IP de origem contra `EVOLUTION_SERVER_IP`. Apenas requisicoes do servidor da Evolution API sao aceitas.
 
 ### Tratamento de erros no envio de categoria
 Quando o envio de mensagem por categoria falha para produtos individuais, o sistema conta as falhas e retorna status HTTP adequado: 200 (todos enviados), 207 (envio parcial) ou 500 (todos falharam).
+
+### Listagem de produtos
+A listagem de produtos (`products.html`) e renderizada inteiramente via JavaScript/API. A view `get_all_products` apenas renderiza o template vazio — todos os dados sao carregados via `api_list_products`.
+
+### Template unificado de produto
+Os formularios de criacao e edicao de produto usam um unico template (`product_form.html`). Variaveis de contexto (`is_edit`, `page_title`, `submit_label`) controlam o comportamento. No modo edicao, o formulario exibe preview da imagem atual.
 
 ### Ausencia de testes
 Os arquivos `tests.py` em todos os apps estao vazios. Nao ha testes automatizados implementados.

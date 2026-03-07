@@ -28,6 +28,11 @@
                 }
             }
         }
+
+        // Apply dark mode immediately to prevent flash
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
     </script>
     <style>
         html, body {

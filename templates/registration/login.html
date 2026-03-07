@@ -33,9 +33,8 @@
             }
         }
         
-        // Dark mode initialization
-        if (localStorage.getItem('darkMode') === 'true' || 
-            (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        // Apply dark mode immediately to prevent flash
+        if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
         }
     </script>
@@ -161,7 +160,7 @@
         
         darkModeToggle.addEventListener('click', () => {
             html.classList.toggle('dark');
-            localStorage.setItem('darkMode', html.classList.contains('dark'));
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
         });
     </script>
 </body>
