@@ -1,8 +1,10 @@
 import uuid
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+from django.db.models import Sum, Count
 from .models import Product
 from .forms import ProductForm
+from categories.models import Category
 from utils.storage import upload_file, delete_file
 from utils.api_response import api_success, api_error, api_form_error, api_exception
 
@@ -10,8 +12,12 @@ from utils.api_response import api_success, api_error, api_form_error, api_excep
 @login_required
 @require_http_methods(["GET"])
 def api_list_products(request):
-    page = int(request.GET.get('page', 1))
-    per_page = int(request.GET.get('per_page', 10))
+    try:
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 10))
+    except (ValueError, TypeError):
+        page, per_page = 1, 10
+    per_page = min(per_page, 100)
     search = request.GET.get('search', '').strip()
 
     products = Product.objects.all().order_by('-created_at')
@@ -38,6 +44,16 @@ def api_list_products(request):
         })
 
     total_pages = (total + per_page - 1) // per_page
+
+    all_products = Product.objects.all()
+    total_value = all_products.aggregate(total=Sum('price'))['total'] or 0
+    stats = {
+        'total_products': all_products.count(),
+        'total_value': str(total_value),
+        'with_stock_control': all_products.filter(stock_active=True).count(),
+        'total_categories': Category.objects.count(),
+    }
+
     return api_success(
         data=data,
         message='Produtos listados com sucesso',
@@ -47,6 +63,7 @@ def api_list_products(request):
             'total_items': total,
             'total_pages': total_pages,
         },
+        stats=stats,
     )
 
 

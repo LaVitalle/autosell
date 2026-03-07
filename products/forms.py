@@ -46,8 +46,8 @@ class ProductForm(forms.ModelForm):
         price = self.cleaned_data.get('price')
         if not price:
             raise forms.ValidationError("O preço do produto é obrigatório")
-        if price < 0:
-            raise forms.ValidationError("O preço do produto não pode ser negativo")
+        if price <= 0:
+            raise forms.ValidationError("O preço do produto deve ser maior que zero")
         return price
 
     def clean_stock_active(self):
@@ -58,13 +58,13 @@ class ProductForm(forms.ModelForm):
 
     def clean_stock_quantity(self):
         stock_quantity = self.cleaned_data.get('stock_quantity')
-        if not stock_quantity:
-            stock_quantity = 0
+        if stock_quantity is None:
+            return 0
         return stock_quantity
 
     def clean(self):
-        stock_active = self.cleaned_data.get('stock_active')
-        stock_quantity = self.cleaned_data.get('stock_quantity')
-        if not stock_active and stock_quantity > 0:
+        stock_active = self.cleaned_data.get('stock_active', False)
+        stock_quantity = self.cleaned_data.get('stock_quantity', 0)
+        if not stock_active and stock_quantity and stock_quantity > 0:
             self.cleaned_data['stock_quantity'] = 0
         return self.cleaned_data

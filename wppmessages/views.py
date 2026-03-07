@@ -74,7 +74,7 @@ def messages_manager(request):
             elif message.type == 'category':
                 category = Category.objects.get(id=message.category.id)
                 if category:
-                    products = category.products.all()
+                    products = category.products.exclude(stock_active=True, stock_quantity=0)
                     if products.count() > 0:
                         total = products.count()
                         failed_count = 0

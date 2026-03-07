@@ -2,14 +2,14 @@
 
 ## 1. Visao Geral
 
-**AutoSell** e um sistema web de gestao de vendas e marketing via WhatsApp, construido com Django 5.2.5. O sistema permite cadastrar produtos e categorias, gerenciar contatos e enviar mensagens automatizadas (texto e midia) via WhatsApp atraves da **Evolution API**. As imagens sao armazenadas no **Supabase Storage**.
+**AutoSell** e um sistema web de gestao de vendas e marketing via WhatsApp, construido com Django 5.2.5. O sistema permite cadastrar produtos e categorias, gerenciar contatos e enviar mensagens automatizadas (texto e midia) via WhatsApp atraves da **Evolution API**. As imagens sao armazenadas localmente no servidor via **Django MEDIA_ROOT**.
 
 - **Dominio de producao:** `autosell.upperlavtech.com`
 - **Linguagem:** Python 3.13
 - **Framework:** Django 5.2.5
 - **Frontend:** Templates Django + Tailwind CSS (via CDN)
 - **Banco de dados:** SQLite (dev) / PostgreSQL (prod)
-- **Armazenamento de imagens:** Supabase Storage
+- **Armazenamento de imagens:** Django Local (MEDIA_ROOT)
 - **Mensageria WhatsApp:** Evolution API
 - **Autenticacao:** Sistema nativo do Django (session-based)
 
@@ -33,7 +33,8 @@ autosell/
 │
 ├── products/                  # App - Gestao de Produtos
 │   ├── models.py              # Model Product
-│   ├── views.py               # CRUD completo de produtos
+│   ├── views.py               # CRUD completo de produtos (templates)
+│   ├── api_views.py           # Endpoints API (JSON)
 │   ├── forms.py               # ProductForm com validacoes
 │   ├── urls.py                # Rotas /products/
 │   ├── admin.py               # Registro no Django Admin
@@ -43,7 +44,8 @@ autosell/
 │
 ├── categories/                # App - Gestao de Categorias
 │   ├── models.py              # Model Category (M2M com Product)
-│   ├── views.py               # CRUD completo de categorias
+│   ├── views.py               # CRUD completo de categorias (templates)
+│   ├── api_views.py           # Endpoints API (JSON)
 │   ├── forms.py               # CategoryForm com selecao de produtos
 │   ├── urls.py                # Rotas /categories/
 │   ├── admin.py               # Registro no Django Admin
@@ -51,7 +53,8 @@ autosell/
 │
 ├── contacts/                  # App - Gestao de Contatos
 │   ├── models.py              # Model Contact
-│   ├── views.py               # CRUD completo de contatos
+│   ├── views.py               # CRUD completo de contatos (templates)
+│   ├── api_views.py           # Endpoints API (JSON)
 │   ├── forms.py               # ContactForm com validacao de telefone
 │   ├── urls.py                # Rotas /contacts/
 │   └── migrations/
@@ -59,17 +62,27 @@ autosell/
 ├── wppmessages/               # App - Envio de Mensagens WhatsApp
 │   ├── models.py              # Model Message (FK para Contact, Product, Category)
 │   ├── views.py               # Gerenciador de mensagens + webhook
+│   ├── api_views.py           # Endpoint API de envio de mensagem
 │   ├── forms.py               # MessageForm com tipo dinamico
 │   ├── urls.py                # Rotas /messages/
 │   └── migrations/
 │
+├── systemlogs/                # App - Logs do sistema
+│   ├── models.py              # Model para logs
+│   └── migrations/
+│
 ├── utils/                     # Utilitarios
 │   ├── evoapi.py              # Integracao com Evolution API (WhatsApp)
-│   └── supabase_storage.py    # Upload/delete de arquivos no Supabase Storage
+│   ├── storage.py             # Upload/delete de arquivos locais (MEDIA_ROOT)
+│   └── api_response.py        # Helpers para respostas padronizadas de API
 │
 ├── templates/                 # Templates globais
 │   └── registration/
 │       └── login.html         # Pagina de login customizada
+│
+├── media/                     # Arquivos de midia (imagens) - nao versionado
+│   ├── products/              # Imagens de produtos
+│   └── categories/            # Imagens de categorias
 │
 ├── .env                       # Variaveis de ambiente (nao versionado)
 ├── .gitignore
@@ -88,7 +101,7 @@ autosell/
 | `name`           | CharField(90)           | Obrigatorio                   |
 | `description`    | TextField(255)          | Opcional (null=True)          |
 | `price`          | DecimalField(10,2)      | Obrigatorio                   |
-| `image_url`      | URLField(500)           | Opcional (null=True)          |
+| `image_url`      | CharField(500)          | Opcional (null=True, blank=True) |
 | `stock_active`   | BooleanField            | Default: False                |
 | `stock_quantity` | IntegerField            | Default: 0                    |
 | `updated_at`     | DateTimeField           | auto_now                      |
@@ -100,7 +113,7 @@ autosell/
 |--------------|-------------------------------|-------------------------|
 | `name`       | CharField(90)                 | Obrigatorio             |
 | `description`| TextField(255)                | Opcional (null=True)    |
-| `image_url`  | URLField(500)                 | Opcional (null=True)    |
+| `image_url`  | CharField(500)                | Opcional (null=True, blank=True) |
 | `products`   | ManyToManyField(Product)      | related_name='categories' |
 | `updated_at` | DateTimeField                 | auto_now                |
 | `created_at` | DateTimeField                 | auto_now_add            |
@@ -170,6 +183,7 @@ autosell/
 | `/accounts/login/`            | Django LoginView                    | `login`                 |
 | `/accounts/logout/`           | Django LogoutView                   | `logout`                |
 | `/accounts/password_change/`  | Django PasswordChangeView           | `password_change`       |
+| `/media/<path>`               | `django.views.static.serve`         | -                       |
 
 ### 5.2 Rotas de Produtos (`products/urls.py`)
 
@@ -180,6 +194,10 @@ autosell/
 | `/products/create`            | `create_product`       | `create_product`    | GET/POST  |
 | `/products/delete/<id>`       | `delete_product`       | `delete_by_id`      | GET/POST  |
 | `/products/edit/<id>`         | `edit_product`         | `edit_product`      | GET/POST  |
+| `/products/api/`              | `api_list_products`    | `api_list_products` | GET       |
+| `/products/api/create/`       | `api_create_product`   | `api_create_product`| POST      |
+| `/products/api/<id>/edit/`    | `api_edit_product`     | `api_edit_product`  | POST      |
+| `/products/api/<id>/delete/`  | `api_delete_product`   | `api_delete_product`| POST      |
 
 ### 5.3 Rotas de Categorias (`categories/urls.py`)
 
@@ -190,6 +208,10 @@ autosell/
 | `/categories/create`            | `create_category`      | `create_category`      | GET/POST  |
 | `/categories/edit/<id>`         | `edit_category`        | `edit_category`        | GET/POST  |
 | `/categories/delete/<id>`       | `delete_category`      | `delete_category`      | GET/POST  |
+| `/categories/api/`              | `api_list_categories`  | `api_list_categories`  | GET       |
+| `/categories/api/create/`       | `api_create_category`  | `api_create_category`  | POST      |
+| `/categories/api/<id>/edit/`    | `api_edit_category`    | `api_edit_category`    | POST      |
+| `/categories/api/<id>/delete/`  | `api_delete_category`  | `api_delete_category`  | POST      |
 
 ### 5.4 Rotas de Contatos (`contacts/urls.py`)
 
@@ -199,6 +221,10 @@ autosell/
 | `/contacts/create`            | `create_contact`    | `create_contact`    | GET/POST  |
 | `/contacts/edit/<id>`         | `edit_contact`      | `edit_contact`      | GET/POST  |
 | `/contacts/delete/<id>`       | `delete_contact`    | `delete_contact`    | GET/POST  |
+| `/contacts/api/`              | `api_list_contacts` | `api_list_contacts` | GET       |
+| `/contacts/api/create/`       | `api_create_contact`| `api_create_contact`| POST      |
+| `/contacts/api/<id>/edit/`    | `api_edit_contact`  | `api_edit_contact`  | POST      |
+| `/contacts/api/<id>/delete/`  | `api_delete_contact`| `api_delete_contact`| POST      |
 
 ### 5.5 Rotas de Mensagens (`wppmessages/urls.py`)
 
@@ -206,6 +232,7 @@ autosell/
 |---------------------|---------------------|----------------------|-----------|
 | `/messages/`        | `messages_manager`  | `messages_manager`   | GET/POST  |
 | `/messages/hook`    | `hook`              | `hook`               | POST      |
+| `/messages/api/send/` | `api_send_message`| `api_send_message`   | POST      |
 
 ---
 
@@ -237,27 +264,30 @@ _Descricao do produto_
 *Preco:* R$ XX.XX
 ```
 
-### 6.2 Supabase Storage - `utils/supabase_storage.py`
+### 6.2 Armazenamento Local - `utils/storage.py`
 
-Gerencia upload e exclusao de imagens no Supabase Storage.
+Gerencia upload e exclusao de imagens no sistema de arquivos local (MEDIA_ROOT).
 
-**Configuracoes necessarias (.env):**
-- `SUPABASE_URL` - URL do projeto Supabase
-- `SUPABASE_SERVICE_ROLE_KEY` - Service Role Key (backend)
-
-**Bucket:** `Images`
+**Configuracoes necessarias (`settings.py`):**
+- `MEDIA_URL = '/media/'` - Prefixo da URL para arquivos de midia
+- `MEDIA_ROOT = BASE_DIR / 'media'` - Diretorio fisico no servidor
+- `SITE_URL` - URL base do site (usado para construir URLs absolutas para APIs externas)
 
 **Funcoes disponiveis:**
 
-| Funcao                      | Descricao                                              |
-|-----------------------------|--------------------------------------------------------|
-| `upload_file_to_supabase`   | Faz upload e retorna a URL publica                     |
-| `delete_file_from_supabase` | Deleta arquivo do bucket pelo URL                      |
-| `clean_file_name`           | Remove caracteres especiais/acentos do nome do arquivo |
+| Funcao           | Descricao                                              |
+|------------------|--------------------------------------------------------|
+| `upload_file`    | Salva arquivo em MEDIA_ROOT e retorna path relativo (`/media/...`) |
+| `delete_file`    | Deleta arquivo do disco pelo path relativo             |
+| `clean_file_name`| Remove caracteres especiais/acentos do nome do arquivo |
 
 **Convencao de nomes de arquivo:**
-- Produtos: `products/<uuid><nome_original>`
-- Categorias: `categories/<uuid><nome_original>`
+- Produtos: `media/products/<uuid><nome_original>`
+- Categorias: `media/categories/<uuid><nome_original>`
+
+**URLs de imagem:**
+- No banco de dados e templates: path relativo (ex: `/media/products/abc.png`)
+- Para APIs externas (Evolution API): URL absoluta construida com `SITE_URL` (ex: `https://autosell.upperlavtech.com/media/products/abc.png`)
 
 ---
 
@@ -308,22 +338,22 @@ Criar:
 1. Usuario preenche formulario + seleciona imagem (opcional)
 2. Se imagem fornecida:
    - Gera nome unico: <tipo>/<uuid><nome_original>
-   - Upload para Supabase Storage
-   - Salva URL publica no campo image_url
+   - Salva arquivo em MEDIA_ROOT
+   - Salva path relativo (/media/...) no campo image_url
 3. Salva registro no banco
 
 Editar:
 1. Carrega dados existentes no formulario
 2. Se nova imagem fornecida:
-   - Upload da nova imagem
-   - Deleta imagem anterior do Supabase
+   - Upload da nova imagem para MEDIA_ROOT
+   - Deleta imagem anterior do disco
    - Atualiza image_url
 3. Salva alteracoes
 
 Deletar:
 1. Exibe pagina de confirmacao
 2. Se confirmado (POST com _method=DELETE):
-   - Deleta imagem do Supabase (se existir)
+   - Deleta imagem do disco (se existir)
    - Remove registro do banco
 ```
 
@@ -366,15 +396,15 @@ DB_PASSWORD=<senha>
 DB_HOST=<host>
 DB_PORT=<porta>
 
-# Supabase
-SUPABASE_URL=<url-do-projeto>
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+# URL do site (para URLs absolutas em APIs externas)
+SITE_URL=https://autosell.upperlavtech.com
 
 # Evolution API
 EVOLUTION_TOKEN=<token-global>
 EVOLUTION_URL=<url-base>
 EVOLUTION_INSTANCE_ID=<id-instancia>
 EVOLUTION_INSTANCE_TOKEN=<token-instancia>
+EVOLUTION_SERVER_IP=<ip-do-servidor>
 ```
 
 ### 9.2 Banco de Dados
@@ -389,12 +419,9 @@ EVOLUTION_INSTANCE_TOKEN=<token-instancia>
 |---------------------------|---------|------------------------------------|
 | Django                    | 5.2.5   | Framework web                      |
 | django-cors-headers       | 4.3.1   | Configuracao de CORS               |
-| supabase                  | 2.18.1  | SDK Supabase (storage)             |
 | psycopg2-binary           | 2.9.10  | Driver PostgreSQL                  |
 | python-decouple           | 3.8     | Gestao de variaveis de ambiente    |
 | requests                  | 2.32.5  | Chamadas HTTP (Evolution API)      |
-| httpx                     | 0.28.1  | Cliente HTTP async (usado por supabase) |
-| pydantic                  | 2.11.7  | Validacao de dados (usado por supabase) |
 
 ---
 
@@ -430,26 +457,11 @@ Models registrados no admin com configuracoes customizadas:
 
 ## 13. Observacoes e Pontos de Atencao
 
-### Bug na configuracao DEBUG
-```python
-DEBUG = True if PROD == 'False' else True  # Sempre True!
-```
-A logica condicional resulta em `DEBUG = True` independente do valor de `PROD`. O correto seria:
-```python
-DEBUG = PROD != 'True'
-```
-
 ### Webhook sem autenticacao
 O endpoint `/messages/hook` e `@csrf_exempt` e nao possui autenticacao, e envia o body recebido diretamente para um numero fixo. Isso pode ser explorado para spam.
 
-### Codigo comentado
-O arquivo `categories/urls.py` contem codigo comentado de rotas de produtos (linhas 12-16) que deveria ser removido.
-
 ### Tratamento de erros no envio de categoria
-Quando o envio de mensagem por categoria falha para um produto individual, o erro e silenciosamente ignorado (`continue`), e o status final e marcado como "sent" mesmo que alguns produtos nao tenham sido enviados.
-
-### Ausencia de paginacao nas listagens
-As views `get_all_products`, `get_all_categories` e `get_all_contacts` retornam todos os registros sem paginacao, o que pode causar problemas de performance com muitos registros.
+Quando o envio de mensagem por categoria falha para produtos individuais, o sistema conta as falhas e retorna status HTTP adequado: 200 (todos enviados), 207 (envio parcial) ou 500 (todos falharam).
 
 ### Ausencia de testes
 Os arquivos `tests.py` em todos os apps estao vazios. Nao ha testes automatizados implementados.

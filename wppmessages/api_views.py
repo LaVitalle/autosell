@@ -83,7 +83,7 @@ def api_send_message(request):
                 message.save()
                 return api_error(message='Categoria nao encontrada', status_code=404)
 
-            products = category.products.all()
+            products = category.products.exclude(stock_active=True, stock_quantity=0)
             if products.count() == 0:
                 message.status = 'failed'
                 message.save()

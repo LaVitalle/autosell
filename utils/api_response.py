@@ -3,7 +3,7 @@ import sys
 from django.http import JsonResponse
 
 
-def api_success(data=None, message='Operacao realizada com sucesso', status_code=200, page_info=None):
+def api_success(data=None, message='Operacao realizada com sucesso', status_code=200, page_info=None, stats=None):
     response = {
         'data': data,
         'status': {
@@ -11,6 +11,7 @@ def api_success(data=None, message='Operacao realizada com sucesso', status_code
             'message': message,
         },
         'page': page_info,
+        'stats': stats,
     }
     return JsonResponse(response, status=status_code)
 

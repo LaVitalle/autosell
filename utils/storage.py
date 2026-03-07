@@ -1,12 +1,21 @@
 import os
+import re
+import unicodedata
 from django.conf import settings
+
+ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 
 
 def clean_file_name(file_name: str) -> str:
-    return file_name.replace(" ", "").replace("-", "").replace(":", "").replace("(", "").replace(")", "").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u").replace("ç", "c").replace("Á","A").replace("É","E").replace("Í","I").replace("Ó","O").replace("Ú","U").replace("Ç","C")
+    nfkd = unicodedata.normalize('NFKD', file_name)
+    ascii_name = nfkd.encode('ASCII', 'ignore').decode('ASCII')
+    return re.sub(r'[^\w.]', '', ascii_name)
 
 
 def upload_file(file_name: str, file) -> str:
+    ext = os.path.splitext(file_name)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return None
     file_name = clean_file_name(file_name)
     file_path = os.path.join(settings.MEDIA_ROOT, file_name)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
