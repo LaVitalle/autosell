@@ -217,12 +217,18 @@ def _handle_messages_update(payload):
         STATUS_ORDER = {'pending': 0, 'sent': 1, 'delivered': 2, 'read': 3}
 
         for update in updates:
-            key = update.get('key', {})
-            wpp_message_id = key.get('id')
+            # Formato real: flat com keyId/status (não nested key/update)
+            wpp_message_id = (
+                update.get('keyId') or
+                update.get('key', {}).get('id')
+            )
             if not wpp_message_id:
                 continue
 
-            raw_status = update.get('update', {}).get('status')
+            raw_status = (
+                update.get('status') or
+                update.get('update', {}).get('status')
+            )
 
             if isinstance(raw_status, int):
                 new_status = status_map.get(raw_status)
