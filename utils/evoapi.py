@@ -103,14 +103,14 @@ def send_product_message(phone, product):
 def mark_message_as_read(remote_jid, message_ids):
     try:
         response = post(
-            f"{EVOLUTION_URL}/chat/readMessage/{EVOLUTION_INSTANCE_ID}",
+            f"{EVOLUTION_URL}/chat/markMessageAsRead/{EVOLUTION_INSTANCE_ID}",
             headers={
                 "Content-Type": "application/json",
                 "apikey": f"{EVOLUTION_INSTANCE_TOKEN}"
             },
             json={
                 "readMessages": [
-                    {"remoteJid": remote_jid, "id": mid}
+                    {"remoteJid": remote_jid, "fromMe": False, "id": mid}
                     for mid in message_ids
                 ]
             }

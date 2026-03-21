@@ -294,6 +294,7 @@
 // ===== State =====
 let currentConvId = null;
 let lastMessageId = 0;
+let lastStatusPoll = null;
 let pollInterval = null;
 let msgPollInterval = null;
 let isMobile = window.innerWidth < 768;
@@ -366,6 +367,7 @@ async function loadConversations() {
 async function selectConversation(id, name, phone) {
     currentConvId = id;
     lastMessageId = 0;
+    lastStatusPoll = null;
     document.getElementById('chatContactName').textContent = name;
     document.getElementById('chatContactPhone').textContent = phone || 'Sem telefone';
     document.getElementById('chatContactPhone').title = phone ? phone : 'Clique para adicionar telefone';
@@ -398,9 +400,30 @@ function showConvList() {
 // ===== Messages =====
 async function loadMessages() {
     if (!currentConvId) return;
-    const params = lastMessageId ? `?after_id=${lastMessageId}` : '?limit=50';
+    let params = lastMessageId ? `?after_id=${lastMessageId}` : '?limit=50';
+    if (lastStatusPoll) params += `&status_since=${encodeURIComponent(lastStatusPoll)}`;
     const res = await apiRequest(`${BASE}/conversations/${currentConvId}/messages/${params}`);
     if (!res.ok) return;
+
+    lastStatusPoll = new Date().toISOString();
+
+    // Atualizar status de mensagens existentes
+    const statusUpdates = res.data.stats?.status_updates || [];
+    statusUpdates.forEach(u => {
+        const el = document.querySelector(`[data-msg-id="${u.id}"]`);
+        if (el) {
+            const footer = el.querySelector('.flex.items-center.justify-end');
+            if (footer) {
+                const icon = footer.querySelector('svg:last-child');
+                const newHtml = getStatusIcon(u.status);
+                if (icon && newHtml) {
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = newHtml;
+                    icon.replaceWith(tmp.firstElementChild);
+                }
+            }
+        }
+    });
 
     const msgs = res.data.data || [];
     if (msgs.length === 0) return;

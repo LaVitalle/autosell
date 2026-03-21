@@ -77,6 +77,7 @@ def api_messages(request, conversation_id):
     try:
         after_id = request.GET.get('after_id')
         limit = min(100, max(1, int(request.GET.get('limit', 50))))
+        status_since = request.GET.get('status_since')
 
         qs = ChatMessage.objects.filter(conversation=conversation).select_related('product', 'category')
 
@@ -99,7 +100,20 @@ def api_messages(request, conversation_id):
                 'wpp_message_id': m.wpp_message_id,
             })
 
-        return api_success(data=data)
+        status_updates = []
+        if status_since:
+            try:
+                since_dt = datetime.fromisoformat(status_since)
+                changed = ChatMessage.objects.filter(
+                    conversation=conversation,
+                    direction='out',
+                    status_updated_at__gt=since_dt,
+                ).values('id', 'status')[:100]
+                status_updates = [{'id': c['id'], 'status': c['status']} for c in changed]
+            except (ValueError, TypeError):
+                pass
+
+        return api_success(data=data, stats={'status_updates': status_updates} if status_updates else None)
     except Exception:
         return api_exception(request, 'livechat.api.messages')
 
@@ -304,15 +318,22 @@ def api_mark_read(request, conversation_id):
         return api_error('Conversa nao encontrada', 404)
 
     try:
-        unread_msgs = ChatMessage.objects.filter(
+        unread_qs = ChatMessage.objects.filter(
             conversation=conversation,
             direction='in',
-        ).exclude(status='read').values_list('wpp_message_id', flat=True)
+        ).exclude(status='read')
 
-        message_ids = [mid for mid in unread_msgs if mid]
+        message_ids = list(
+            unread_qs.exclude(wpp_message_id__isnull=True)
+                     .exclude(wpp_message_id='')
+                     .values_list('wpp_message_id', flat=True)
+        )
+
         if message_ids:
-            number = resolve_conversation_number(conversation)
-            mark_message_as_read(number, message_ids)
+            mark_message_as_read(conversation.remote_jid, message_ids)
+
+        now = dj_timezone.now()
+        unread_qs.update(status='read', status_updated_at=now)
 
         conversation.unread_count = 0
         conversation.save()

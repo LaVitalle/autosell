@@ -181,7 +181,7 @@ def _process_single_message(data):
     else:
         ts = datetime.now(tz=timezone.utc)
 
-    status = 'read' if from_me else 'delivered'
+    status = 'sent' if from_me else 'delivered'
 
     ChatMessage.objects.create(
         contact=contact,
@@ -207,8 +207,14 @@ def _process_single_message(data):
 def _handle_messages_update(payload):
     try:
         data = payload.get('data', {})
-
         updates = data if isinstance(data, list) else [data]
+
+        status_map = {2: 'sent', 3: 'delivered', 4: 'read', 5: 'read'}
+        string_status_map = {
+            'SERVER_ACK': 'sent', 'DELIVERY_ACK': 'delivered',
+            'READ': 'read', 'PLAYED': 'read',
+        }
+        STATUS_ORDER = {'pending': 0, 'sent': 1, 'delivered': 2, 'read': 3}
 
         for update in updates:
             key = update.get('key', {})
@@ -216,15 +222,25 @@ def _handle_messages_update(payload):
             if not wpp_message_id:
                 continue
 
-            update_data = update.get('update', {})
-            new_status_code = update_data.get('status')
+            raw_status = update.get('update', {}).get('status')
 
-            status_map = {2: 'sent', 3: 'delivered', 4: 'read'}
-            new_status = status_map.get(new_status_code)
+            if isinstance(raw_status, int):
+                new_status = status_map.get(raw_status)
+            elif isinstance(raw_status, str):
+                new_status = string_status_map.get(raw_status)
+            else:
+                continue
+
             if not new_status:
                 continue
 
-            ChatMessage.objects.filter(wpp_message_id=wpp_message_id).update(status=new_status)
+            lower_statuses = [s for s, o in STATUS_ORDER.items() if o < STATUS_ORDER[new_status]]
+            now = datetime.now(tz=timezone.utc)
+
+            ChatMessage.objects.filter(
+                wpp_message_id=wpp_message_id,
+                status__in=lower_statuses,
+            ).update(status=new_status, status_updated_at=now)
 
     except Exception as e:
         log_system_event('ERROR', 'livechat.webhook.messages_update',
