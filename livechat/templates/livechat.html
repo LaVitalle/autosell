@@ -28,6 +28,21 @@
         .chat-area { width: 100%; }
         .conv-list.hidden-mobile { display: none; }
         .chat-area.hidden-mobile { display: none; }
+
+        /* Fix: make chat fill exactly between mobile header and bottom nav */
+        .main-content {
+            height: 100dvh !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        #contentWrapper {
+            padding: 0 !important;
+            flex: 1 !important;
+            overflow: hidden !important;
+            min-height: 0 !important;
+        }
     }
 
     .conv-item { cursor: pointer; transition: background 0.15s; }
