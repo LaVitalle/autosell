@@ -134,18 +134,33 @@ def _process_single_message(data):
             return
         # No duplicate found — external message sent from phone, continue to register
 
-    phone = remote_jid.split('@')[0]
+    waba_id = remote_jid.split('@')[0]
     push_name = data.get('pushName', '').strip()
 
+    # Extrair telefone real de remoteJidAlt (disponivel quando addressingMode='lid')
+    remote_jid_alt = key.get('remoteJidAlt', '')
+    phone = ''
+    if remote_jid_alt:
+        phone = remote_jid_alt.split('@')[0]
+    elif '@s.whatsapp.net' in remote_jid:
+        # Se remoteJid e um JID padrao, o proprio numero e o telefone
+        phone = waba_id
+
     contact, created = Contact.objects.get_or_create(
-        phone=phone,
-        defaults={'name': push_name or phone}
+        waba_id=waba_id,
+        defaults={'name': push_name or waba_id, 'phone': phone}
     )
 
-    # If contact exists with phone as name but pushName is available, update it
-    if not created and push_name and contact.name == phone:
+    # Atualizar dados do contato existente se tivermos info nova
+    update_fields = []
+    if not created and push_name and contact.name == waba_id:
         contact.name = push_name
-        contact.save(update_fields=['name'])
+        update_fields.append('name')
+    if not created and phone and not contact.phone:
+        contact.phone = phone
+        update_fields.append('phone')
+    if update_fields:
+        contact.save(update_fields=update_fields)
 
     conversation, _ = Conversation.objects.get_or_create(
         remote_jid=remote_jid,

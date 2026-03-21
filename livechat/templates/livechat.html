@@ -141,7 +141,10 @@
                 <div class="flex-1 min-w-0">
                     <p id="chatContactName" class="font-semibold text-neutral-900 dark:text-white truncate cursor-pointer hover:underline" onclick="startEditContactName()"></p>
                     <input id="chatContactNameInput" type="text" class="hidden font-semibold text-neutral-900 dark:text-white bg-transparent border-b-2 border-neutral-400 dark:border-neutral-500 focus:border-neutral-900 dark:focus:border-white outline-none w-full text-sm py-0.5" maxlength="100">
-                    <p id="chatContactPhone" class="text-xs text-neutral-500 dark:text-neutral-400"></p>
+                    <div class="flex items-center gap-2">
+                        <p id="chatContactPhone" class="text-xs text-neutral-500 dark:text-neutral-400 cursor-pointer hover:underline" onclick="startEditContactPhone()" title="Clique para editar telefone"></p>
+                        <input id="chatContactPhoneInput" type="text" class="hidden text-xs text-neutral-500 dark:text-neutral-400 bg-transparent border-b border-neutral-400 dark:border-neutral-500 focus:border-neutral-900 dark:focus:border-white outline-none w-32 py-0" placeholder="Telefone" maxlength="20">
+                    </div>
                 </div>
                 <div class="flex items-center gap-1">
                     <button id="btnCart" class="relative p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Carrinho">
@@ -364,7 +367,8 @@ async function selectConversation(id, name, phone) {
     currentConvId = id;
     lastMessageId = 0;
     document.getElementById('chatContactName').textContent = name;
-    document.getElementById('chatContactPhone').textContent = phone;
+    document.getElementById('chatContactPhone').textContent = phone || 'Sem telefone';
+    document.getElementById('chatContactPhone').title = phone ? phone : 'Clique para adicionar telefone';
     document.getElementById('chatEmpty').style.display = 'none';
     document.getElementById('chatActive').style.display = 'flex';
     document.getElementById('messagesContainer').innerHTML = '';
@@ -966,5 +970,51 @@ document.getElementById('chatContactNameInput').addEventListener('keydown', e =>
     if (e.key === 'Escape') { cancelEditContactName(); }
 });
 document.getElementById('chatContactNameInput').addEventListener('blur', saveContactName);
+
+// ─── Phone editing ──────────────────────────────────────────────────────────
+function startEditContactPhone() {
+    if (!currentConvId) return;
+    const phoneEl = document.getElementById('chatContactPhone');
+    const inputEl = document.getElementById('chatContactPhoneInput');
+    inputEl.value = phoneEl.textContent;
+    phoneEl.classList.add('hidden');
+    inputEl.classList.remove('hidden');
+    inputEl.focus();
+    inputEl.select();
+}
+
+function cancelEditContactPhone() {
+    const phoneEl = document.getElementById('chatContactPhone');
+    const inputEl = document.getElementById('chatContactPhoneInput');
+    inputEl.classList.add('hidden');
+    phoneEl.classList.remove('hidden');
+}
+
+async function saveContactPhone() {
+    if (!currentConvId) return;
+    const inputEl = document.getElementById('chatContactPhoneInput');
+    const phoneEl = document.getElementById('chatContactPhone');
+    const newPhone = inputEl.value.trim();
+    if (newPhone === phoneEl.textContent) {
+        cancelEditContactPhone();
+        return;
+    }
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/update-contact/`, {
+        method: 'POST', body: { phone: newPhone }
+    });
+    if (res.ok) {
+        phoneEl.textContent = res.data.data.phone || '';
+        cancelEditContactPhone();
+        loadConversations();
+    } else {
+        showToast(apiMessage(res.data), 'error');
+    }
+}
+
+document.getElementById('chatContactPhoneInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveContactPhone(); }
+    if (e.key === 'Escape') { cancelEditContactPhone(); }
+});
+document.getElementById('chatContactPhoneInput').addEventListener('blur', saveContactPhone);
 </script>
 {% endblock %}

@@ -6,7 +6,7 @@ from products.models import Product
 from categories.models import Category
 from .models import Message
 from .forms import MessageForm
-from utils.evoapi import send_media_message, send_text_message, build_product_text, send_product_message
+from utils.evoapi import send_media_message, send_text_message, build_product_text, send_product_message, resolve_contact_number
 from utils.api_response import api_success, api_error, api_form_error, api_exception
 
 
@@ -103,7 +103,7 @@ def api_send_message(request):
                 message.save()
                 return api_error(message='Produto nao encontrado', status_code=404)
 
-            result = _send_product_message(message.contact.phone, product)
+            result = _send_product_message(resolve_contact_number(message.contact), product)
             if result:
                 message.status = 'sent'
                 message.save()
@@ -139,7 +139,7 @@ def api_send_message(request):
             failed_count = 0
             for product in products:
                 try:
-                    result = _send_product_message(message.contact.phone, product)
+                    result = _send_product_message(resolve_contact_number(message.contact), product)
                     if not result:
                         failed_count += 1
                 except Exception:

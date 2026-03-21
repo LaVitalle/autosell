@@ -62,6 +62,11 @@ def send_media_message(number: str, mediatype: str, mimetype: str, caption: str,
         return None
 
 
+def resolve_contact_number(contact):
+    """Retorna o identificador para envio: tenta waba_id primeiro, senao usa phone."""
+    return contact.waba_id or contact.phone or ''
+
+
 def build_product_text(product):
     parts = [f'*{product.name}*']
     if product.description:

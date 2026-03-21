@@ -43,7 +43,7 @@ def api_conversations(request):
             data.append({
                 'id': c.id,
                 'contact_name': c.contact.name,
-                'contact_phone': c.contact.phone,
+                'contact_phone': c.contact.phone or '',
                 'remote_jid': c.remote_jid,
                 'last_message_text': c.last_message_text,
                 'last_message_at': c.last_message_at.isoformat() if c.last_message_at else None,
@@ -118,7 +118,13 @@ def api_send_text(request, conversation_id):
         if not text:
             return api_error('Texto vazio')
 
+        # Tenta enviar pelo JID, se falhar tenta pelo telefone
         result = send_text_message(conversation.remote_jid, text)
+        if not result and conversation.contact.phone:
+            log_system_event('INFO', 'livechat.api.send_text',
+                f'Fallback para phone: {conversation.contact.phone}')
+            result = send_text_message(conversation.contact.phone, text)
+
         log_system_event('INFO', 'livechat.api.send_text',
             f'RemoteJid: {conversation.remote_jid} | Result type: {type(result).__name__} | Result: {str(result)[:500]}')
 
@@ -176,6 +182,8 @@ def api_send_product(request, conversation_id):
         product = Product.objects.get(id=product_id)
 
         result = send_product_message(conversation.remote_jid, product)
+        if not result and conversation.contact.phone:
+            result = send_product_message(conversation.contact.phone, product)
 
         now = dj_timezone.now()
         wpp_id = None
@@ -239,9 +247,12 @@ def api_send_category(request, conversation_id):
             return api_error('Categoria sem produtos disponiveis', 400)
 
         remote_jid = conversation.remote_jid
+        phone = conversation.contact.phone
         sent_count = 0
         for product in products:
             result = send_product_message(remote_jid, product)
+            if not result and phone:
+                result = send_product_message(phone, product)
             if result:
                 sent_count += 1
 
@@ -323,14 +334,24 @@ def api_update_contact(request, conversation_id):
     try:
         body = json.loads(request.body)
         name = body.get('name', '').strip()
-        if not name:
-            return api_error('Nome vazio')
+        phone = body.get('phone')
+
+        if not name and phone is None:
+            return api_error('Nenhum dado para atualizar')
 
         contact = conversation.contact
-        contact.name = name
-        contact.save(update_fields=['name'])
+        update_fields = []
 
-        return api_success(data={'name': contact.name}, message='Contato atualizado')
+        if name:
+            contact.name = name
+            update_fields.append('name')
+        if phone is not None:
+            contact.phone = phone.strip()
+            update_fields.append('phone')
+
+        contact.save(update_fields=update_fields)
+
+        return api_success(data={'name': contact.name, 'phone': contact.phone}, message='Contato atualizado')
     except Exception:
         return api_exception(request, 'livechat.api.update_contact')
 

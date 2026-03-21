@@ -23,9 +23,9 @@ class ContactForm(forms.ModelForm):
         return name
 
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
+        phone = self.cleaned_data.get('phone', '').strip()
         if not phone:
-            raise forms.ValidationError("O telefone do contato é obrigatório")
+            return ''
         phone = phone.replace("(", "").replace(")", "").replace("-", "").replace(" ", "").replace("+", "")
         if not phone.isdigit():
             raise forms.ValidationError("O telefone deve conter apenas números")

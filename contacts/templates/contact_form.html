@@ -71,13 +71,12 @@
                 <!-- Telefone -->
                 <div class="md:col-span-2">
                     <label for="id_phone" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                        Telefone *
+                        Telefone
                     </label>
                     <input type="tel"
                            name="phone"
                            id="id_phone"
                            value="{{ form.phone.value|default_if_none:'' }}"
-                           required
                            maxlength="15"
                            class="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors duration-200 text-sm"
                            placeholder="(11) 99999-9999" />
@@ -180,7 +179,6 @@
             let isValid = true;
 
             if (!nameInput.value.trim() || nameInput.value.trim().length < 3) { isValid = false; showError(nameInput, 'O nome deve ter pelo menos 3 caracteres.'); }
-            if (!phoneInput.value.trim()) { isValid = false; showError(phoneInput, 'O telefone é obrigatório.'); }
             if (!isValid) return;
 
             setButtonLoading(submitBtn, true, loadingText);
