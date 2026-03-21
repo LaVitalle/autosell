@@ -13,7 +13,7 @@ from products.models import Product
 from categories.models import Category
 from .models import Conversation, ChatMessage, Cart, CartItem, Sale, SaleItem
 from utils.api_response import api_success, api_error, api_exception, log_system_event
-from utils.evoapi import send_text_message, send_product_message, build_product_text, mark_message_as_read
+from utils.evoapi import send_text_message, send_product_message, build_product_text, mark_message_as_read, resolve_conversation_number
 
 
 # ─── Conversations ───────────────────────────────────────────────────────────
@@ -118,15 +118,14 @@ def api_send_text(request, conversation_id):
         if not text:
             return api_error('Texto vazio')
 
-        # Tenta enviar pelo JID, se falhar tenta pelo telefone
-        result = send_text_message(conversation.remote_jid, text)
-        if not result and conversation.contact.phone:
-            log_system_event('INFO', 'livechat.api.send_text',
-                f'Fallback para phone: {conversation.contact.phone}')
-            result = send_text_message(conversation.contact.phone, text)
+        # Prioriza phone (JID), fallback remote_jid (LID)
+        number = resolve_conversation_number(conversation)
+        result = send_text_message(number, text)
+        if not result and number != conversation.remote_jid:
+            result = send_text_message(conversation.remote_jid, text)
 
         log_system_event('INFO', 'livechat.api.send_text',
-            f'RemoteJid: {conversation.remote_jid} | Result type: {type(result).__name__} | Result: {str(result)[:500]}')
+            f'Number: {number} | Result: {str(result)[:500]}')
 
         now = dj_timezone.now()
         wpp_id = None
@@ -181,9 +180,10 @@ def api_send_product(request, conversation_id):
         product_id = body.get('product_id')
         product = Product.objects.get(id=product_id)
 
-        result = send_product_message(conversation.remote_jid, product)
-        if not result and conversation.contact.phone:
-            result = send_product_message(conversation.contact.phone, product)
+        number = resolve_conversation_number(conversation)
+        result = send_product_message(number, product)
+        if not result and number != conversation.remote_jid:
+            result = send_product_message(conversation.remote_jid, product)
 
         now = dj_timezone.now()
         wpp_id = None
@@ -246,13 +246,13 @@ def api_send_category(request, conversation_id):
         if not products.exists():
             return api_error('Categoria sem produtos disponiveis', 400)
 
+        number = resolve_conversation_number(conversation)
         remote_jid = conversation.remote_jid
-        phone = conversation.contact.phone
         sent_count = 0
         for product in products:
-            result = send_product_message(remote_jid, product)
-            if not result and phone:
-                result = send_product_message(phone, product)
+            result = send_product_message(number, product)
+            if not result and number != remote_jid:
+                result = send_product_message(remote_jid, product)
             if result:
                 sent_count += 1
 
@@ -299,7 +299,7 @@ def api_send_category(request, conversation_id):
 @require_http_methods(["POST"])
 def api_mark_read(request, conversation_id):
     try:
-        conversation = Conversation.objects.get(id=conversation_id)
+        conversation = Conversation.objects.select_related('contact').get(id=conversation_id)
     except Conversation.DoesNotExist:
         return api_error('Conversa nao encontrada', 404)
 
@@ -311,7 +311,8 @@ def api_mark_read(request, conversation_id):
 
         message_ids = [mid for mid in unread_msgs if mid]
         if message_ids:
-            mark_message_as_read(conversation.remote_jid, message_ids)
+            number = resolve_conversation_number(conversation)
+            mark_message_as_read(number, message_ids)
 
         conversation.unread_count = 0
         conversation.save()

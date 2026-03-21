@@ -112,57 +112,59 @@ def _process_single_message(data):
     if not text:
         text = '[Mensagem]'
 
-    # Dedup fallback for fromMe messages (echo from Evolution API)
+    # Dedup para mensagens fromMe=true (echo de mensagem enviada pelo nosso sistema)
     if from_me:
         from datetime import timedelta
-        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=60)
-        duplicate = ChatMessage.objects.filter(
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=30)
+        # Busca mensagem pendente sem wpp_message_id (enviada pelo nosso sistema)
+        pending_msg = ChatMessage.objects.filter(
             remote_jid=remote_jid,
             direction='out',
             content=text,
             timestamp__gte=cutoff,
-        ).exists()
-        if duplicate:
-            # Echo of a system-sent message — update wpp_message_id if missing
-            ChatMessage.objects.filter(
-                remote_jid=remote_jid,
-                direction='out',
-                content=text,
-                timestamp__gte=cutoff,
-                wpp_message_id__isnull=True,
-            ).order_by('-timestamp').update(wpp_message_id=wpp_message_id)
+            wpp_message_id__isnull=True,
+        ).order_by('-timestamp').first()
+
+        if pending_msg:
+            # Echo da nossa mensagem — atualizar wpp_message_id e retornar
+            pending_msg.wpp_message_id = wpp_message_id
+            pending_msg.save(update_fields=['wpp_message_id'])
             return
-        # No duplicate found — external message sent from phone, continue to register
+        # Nao e echo — mensagem enviada externamente (pelo celular), continuar registrando
 
     waba_id = remote_jid.split('@')[0]
-    push_name = data.get('pushName', '').strip()
 
-    # Extrair telefone real: senderPn (LID) ou remoteJidAlt, ou do proprio remoteJid
-    sender_pn = key.get('senderPn', '')
-    remote_jid_alt = key.get('remoteJidAlt', '')
+    # Extrair telefone e nome apenas de mensagens recebidas (fromMe=false)
+    # Mensagens fromMe=true vem com pushName/sender da instancia, nao do contato
     phone = ''
-    if sender_pn:
-        phone = sender_pn.split('@')[0]
-    elif remote_jid_alt:
-        phone = remote_jid_alt.split('@')[0]
-    elif '@s.whatsapp.net' in remote_jid:
-        phone = waba_id
+    push_name = ''
+    if not from_me:
+        push_name = data.get('pushName', '').strip()
+        sender_pn = key.get('senderPn', '')
+        remote_jid_alt = key.get('remoteJidAlt', '')
+        if sender_pn:
+            phone = sender_pn.split('@')[0]
+        elif remote_jid_alt:
+            phone = remote_jid_alt.split('@')[0]
+        elif '@s.whatsapp.net' in remote_jid:
+            phone = waba_id
 
     contact, created = Contact.objects.get_or_create(
         waba_id=waba_id,
         defaults={'name': push_name or waba_id, 'phone': phone}
     )
 
-    # Atualizar dados do contato existente se tivermos info nova
-    update_fields = []
-    if not created and push_name and contact.name == waba_id:
-        contact.name = push_name
-        update_fields.append('name')
-    if not created and phone and not contact.phone:
-        contact.phone = phone
-        update_fields.append('phone')
-    if update_fields:
-        contact.save(update_fields=update_fields)
+    # Atualizar dados do contato existente quando o contato responder (fromMe=false)
+    if not created and not from_me:
+        update_fields = []
+        if push_name and contact.name == waba_id:
+            contact.name = push_name
+            update_fields.append('name')
+        if phone and not contact.phone:
+            contact.phone = phone
+            update_fields.append('phone')
+        if update_fields:
+            contact.save(update_fields=update_fields)
 
     conversation, _ = Conversation.objects.get_or_create(
         remote_jid=remote_jid,
