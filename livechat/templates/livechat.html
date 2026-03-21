@@ -29,13 +29,14 @@
         .conv-list.hidden-mobile { display: none; }
         .chat-area.hidden-mobile { display: none; }
 
-        /* Fix: make chat fill exactly between mobile header and bottom nav */
+        /* Fix: make chat fill viewport properly on mobile */
         .main-content {
             height: 100dvh !important;
             min-height: 0 !important;
             overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
+            padding-bottom: 0 !important;
         }
         #contentWrapper {
             padding: 0 !important;
@@ -393,6 +394,11 @@ async function selectConversation(id, name, phone) {
     if (isMobile) {
         document.getElementById('convList').classList.add('hidden-mobile');
         document.getElementById('chatArea').classList.remove('hidden-mobile');
+        // Hide bottom nav and mobile header to give full space to chat
+        const bottomNav = document.getElementById('bottomNav');
+        if (bottomNav) bottomNav.style.display = 'none';
+        const mobileHeader = document.querySelector('.main-content > .md\\:hidden');
+        if (mobileHeader) mobileHeader.style.display = 'none';
     }
 
     // Highlight active conv
@@ -408,6 +414,11 @@ async function selectConversation(id, name, phone) {
 function showConvList() {
     document.getElementById('convList').classList.remove('hidden-mobile');
     document.getElementById('chatArea').classList.add('hidden-mobile');
+    // Restore bottom nav and mobile header
+    const bottomNav = document.getElementById('bottomNav');
+    if (bottomNav) bottomNav.style.display = '';
+    const mobileHeader = document.querySelector('.main-content > .md\\:hidden');
+    if (mobileHeader) mobileHeader.style.display = '';
     currentConvId = null;
     stopMessagePoll();
 }
