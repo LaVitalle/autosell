@@ -137,13 +137,15 @@ def _process_single_message(data):
     waba_id = remote_jid.split('@')[0]
     push_name = data.get('pushName', '').strip()
 
-    # Extrair telefone real de remoteJidAlt (disponivel quando addressingMode='lid')
+    # Extrair telefone real: senderPn (LID) ou remoteJidAlt, ou do proprio remoteJid
+    sender_pn = key.get('senderPn', '')
     remote_jid_alt = key.get('remoteJidAlt', '')
     phone = ''
-    if remote_jid_alt:
+    if sender_pn:
+        phone = sender_pn.split('@')[0]
+    elif remote_jid_alt:
         phone = remote_jid_alt.split('@')[0]
     elif '@s.whatsapp.net' in remote_jid:
-        # Se remoteJid e um JID padrao, o proprio numero e o telefone
         phone = waba_id
 
     contact, created = Contact.objects.get_or_create(
