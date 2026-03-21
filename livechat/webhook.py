@@ -28,9 +28,9 @@ def webhook(request):
 
     event = payload.get('event')
 
-    # Log payload para debug
+    # Log payload completo para debug
     log_system_event('INFO', 'livechat.webhook',
-        f'Evento: {event} | Keys: {list(payload.keys())} | Data keys: {list(payload.get("data", {}).keys()) if isinstance(payload.get("data"), dict) else type(payload.get("data")).__name__}')
+        f'Evento: {event} | Payload: {json.dumps(payload, ensure_ascii=False, default=str)}')
 
     if event == 'messages.upsert':
         _handle_messages_upsert(payload)
