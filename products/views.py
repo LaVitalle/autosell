@@ -11,6 +11,10 @@ def get_all_products(request):
     return render(request, 'products.html')
 
 @login_required
+def stock_management(request):
+    return render(request, 'stock.html')
+
+@login_required
 def get_by_id(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     context = {

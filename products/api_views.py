@@ -1,7 +1,9 @@
+import json
 import uuid
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
-from django.db.models import Sum, Count
+from django.db import transaction
+from django.db.models import Sum, Count, F
 from .models import Product
 from .forms import ProductForm
 from categories.models import Category
@@ -142,3 +144,116 @@ def api_delete_product(request, product_id):
         delete_file(product.image_url)
     product.delete()
     return api_success(message='Produto excluido com sucesso')
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_list_stock(request):
+    try:
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 10))
+    except (ValueError, TypeError):
+        page, per_page = 1, 10
+    per_page = min(per_page, 100)
+    search = request.GET.get('search', '').strip()
+    stock_filter = request.GET.get('filter', 'all').strip()
+
+    products = Product.objects.filter(stock_active=True).order_by('stock_quantity', 'name')
+
+    if search:
+        products = products.filter(name__icontains=search)
+
+    if stock_filter == 'low':
+        products = products.filter(stock_quantity__gt=0, stock_quantity__lte=5)
+    elif stock_filter == 'out':
+        products = products.filter(stock_quantity=0)
+
+    total = products.count()
+    start = (page - 1) * per_page
+    end = start + per_page
+    products_page = products[start:end]
+
+    data = []
+    for p in products_page:
+        data.append({
+            'id': p.id,
+            'name': p.name,
+            'price': str(p.price),
+            'image_url': p.image_url or '',
+            'stock_quantity': p.stock_quantity,
+        })
+
+    total_pages = (total + per_page - 1) // per_page
+
+    all_stock = Product.objects.filter(stock_active=True)
+    stats = {
+        'total_limited': all_stock.count(),
+        'low_stock': all_stock.filter(stock_quantity__gt=0, stock_quantity__lte=5).count(),
+        'out_of_stock': all_stock.filter(stock_quantity=0).count(),
+        'total_units': all_stock.aggregate(total=Sum('stock_quantity'))['total'] or 0,
+    }
+
+    return api_success(
+        data=data,
+        message='Estoque listado com sucesso',
+        page_info={
+            'current': page,
+            'per_page': per_page,
+            'total_items': total,
+            'total_pages': total_pages,
+        },
+        stats=stats,
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_bulk_update_stock(request):
+    try:
+        body = json.loads(request.body)
+        updates = body.get('updates', [])
+
+        if not updates or not isinstance(updates, list):
+            return api_error(message='Lista de atualizacoes e obrigatoria', status_code=400)
+
+        for item in updates:
+            if not isinstance(item.get('id'), int):
+                return api_error(message='ID do produto invalido', status_code=400)
+            if item.get('mode') not in ('set', 'add'):
+                return api_error(message='Modo deve ser "set" ou "add"', status_code=400)
+            if not isinstance(item.get('value'), int) or item['value'] < 0:
+                return api_error(message='Valor deve ser um inteiro >= 0', status_code=400)
+
+        updated_count = 0
+        errors = []
+
+        with transaction.atomic():
+            for item in updates:
+                try:
+                    product = Product.objects.select_for_update().get(
+                        id=item['id'], stock_active=True
+                    )
+                    if item['mode'] == 'set':
+                        product.stock_quantity = item['value']
+                        product.save(update_fields=['stock_quantity', 'updated_at'])
+                    else:
+                        Product.objects.filter(id=item['id']).update(
+                            stock_quantity=F('stock_quantity') + item['value']
+                        )
+                    updated_count += 1
+                except Product.DoesNotExist:
+                    errors.append(f'Produto {item["id"]} nao encontrado ou sem controle de estoque')
+
+        message = f'{updated_count} produto(s) atualizado(s) com sucesso'
+        if errors:
+            message += f'. {len(errors)} erro(s): {"; ".join(errors)}'
+
+        return api_success(
+            data={'updated': updated_count, 'errors': errors},
+            message=message,
+            status_code=200 if not errors else 207,
+        )
+    except json.JSONDecodeError:
+        return api_error(message='JSON invalido', status_code=400)
+    except Exception:
+        return api_exception(request, 'products.api_views.api_bulk_update_stock', 'Erro ao atualizar estoque')

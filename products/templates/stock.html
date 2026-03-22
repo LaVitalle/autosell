@@ -1,0 +1,589 @@
+{% extends 'dashboard.html' %}
+
+{% block content %}
+<style>
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+    @media (max-width: 767px) {
+        #saveBar { bottom: 4.5rem !important; }
+    }
+</style>
+
+<div class="max-w-7xl mx-auto mobile-content-padding h-full flex flex-col">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white">Estoque</h2>
+                <p class="text-xs md:text-sm text-neutral-600 dark:text-neutral-400">Gerenciar quantidades</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="relative flex-1 sm:flex-none">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Buscar produtos..."
+                    class="w-full sm:w-64 px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 transition-colors duration-200">
+                <svg class="absolute right-3 top-2.5 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Cards (clickable filters) -->
+    <div class="grid grid-cols-3 gap-3 mb-4">
+        <button onclick="setFilter('all')" id="filterAll" class="bg-white dark:bg-neutral-800 p-3 rounded-lg border-2 border-neutral-900 dark:border-white shadow-sm text-left transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-neutral-600 dark:text-neutral-400">Limitados</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statTotal"><span class="skeleton inline-block w-8 h-5 rounded">&nbsp;</span></p>
+                </div>
+                <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+            </div>
+        </button>
+
+        <button onclick="setFilter('low')" id="filterLow" class="bg-white dark:bg-neutral-800 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm text-left transition-all duration-200 hover:border-yellow-400 dark:hover:border-yellow-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-yellow-600 dark:text-yellow-400">Estoque Baixo</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statLow"><span class="skeleton inline-block w-8 h-5 rounded">&nbsp;</span></p>
+                </div>
+                <div class="w-8 h-8 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+            </div>
+        </button>
+
+        <button onclick="setFilter('out')" id="filterOut" class="bg-white dark:bg-neutral-800 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm text-left transition-all duration-200 hover:border-red-400 dark:hover:border-red-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-red-600 dark:text-red-400">Esgotados</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white" id="statOut"><span class="skeleton inline-block w-8 h-5 rounded">&nbsp;</span></p>
+                </div>
+                <div class="w-8 h-8 bg-red-50 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </button>
+    </div>
+
+    <!-- Stock Cards Container -->
+    <div class="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm overflow-hidden flex-1 flex flex-col">
+        <div class="px-4 md:px-6 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+            <h3 class="text-base font-semibold text-neutral-900 dark:text-white">Produtos com Estoque Limitado</h3>
+            <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
+                <span id="resultsInfo"><span class="skeleton inline-block w-40 h-4 rounded">&nbsp;</span></span>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-hidden" id="stockContainer">
+            <!-- Cards Grid -->
+            <div class="h-full overflow-hidden p-4" id="cardsGrid">
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="px-4 md:px-6 py-3 border-t border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3" id="paginationControls">
+            <div class="flex items-center justify-center sm:justify-start gap-2">
+                <span class="text-xs text-neutral-600 dark:text-neutral-400">Itens por pagina:</span>
+                <select id="itemsPerPage" class="text-sm border border-neutral-300 dark:border-neutral-600 rounded px-2 py-1 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400">
+                    <option value="6">6</option>
+                    <option value="12">12</option>
+                    <option value="24">24</option>
+                </select>
+            </div>
+            <div class="flex items-center justify-center gap-2">
+                <button id="prevPage" class="inline-flex items-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Anterior
+                </button>
+                <div id="pageNumbers" class="flex items-center gap-1"></div>
+                <button id="nextPage" class="inline-flex items-center px-3 py-1.5 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Proxima
+                    <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Bar -->
+<div id="saveBar" class="fixed bottom-0 left-0 md:left-64 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 px-4 py-3 z-30 shadow-lg hidden">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="text-sm text-neutral-600 dark:text-neutral-400">
+            <span id="dirtyCount" class="font-semibold text-neutral-900 dark:text-white">0</span> alteracao(es) pendente(s)
+        </span>
+        <div class="flex gap-2">
+            <button id="discardBtn" class="px-3 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-lg text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">
+                Descartar
+            </button>
+            <button id="saveBtn" class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-medium rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all duration-200 shadow-sm">
+                Salvar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentPage = 1;
+    let itemsPerPage = 6;
+    let currentFilter = 'all';
+    let searchTimeout = null;
+    const dirtyItems = new Map();
+    const originalData = new Map();
+
+    const searchInput = document.getElementById('searchInput');
+    const resultsInfo = document.getElementById('resultsInfo');
+    const itemsPerPageSelect = document.getElementById('itemsPerPage');
+    const prevButton = document.getElementById('prevPage');
+    const nextButton = document.getElementById('nextPage');
+    const pageNumbers = document.getElementById('pageNumbers');
+    const saveBar = document.getElementById('saveBar');
+    const saveBtn = document.getElementById('saveBtn');
+    const discardBtn = document.getElementById('discardBtn');
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function stockBadge(qty) {
+        if (qty > 5) {
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">${qty} unidades</span>`;
+        }
+        if (qty > 0) {
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">${qty} unidades</span>`;
+        }
+        return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Esgotado</span>`;
+    }
+
+    function showLoading() {
+        const grid = document.getElementById('cardsGrid');
+        if (grid) grid.innerHTML = loadingPlaceholder();
+    }
+
+    function hideLoading() {}
+
+    showLoading();
+    loadStock();
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => { currentPage = 1; loadStock(); }, 300);
+        });
+    }
+
+    if (itemsPerPageSelect) {
+        itemsPerPageSelect.addEventListener('change', function() {
+            itemsPerPage = parseInt(this.value);
+            currentPage = 1;
+            loadStock();
+        });
+    }
+
+    if (prevButton) {
+        prevButton.addEventListener('click', function() {
+            if (currentPage > 1) { currentPage--; loadStock(); }
+        });
+    }
+
+    if (nextButton) {
+        nextButton.addEventListener('click', function() { currentPage++; loadStock(); });
+    }
+
+    window.setFilter = function(filter) {
+        if (currentFilter === filter && filter !== 'all') {
+            currentFilter = 'all';
+        } else {
+            currentFilter = filter;
+        }
+        currentPage = 1;
+        updateFilterUI();
+        loadStock();
+    };
+
+    function updateFilterUI() {
+        const filters = { all: 'filterAll', low: 'filterLow', out: 'filterOut' };
+        for (const [key, id] of Object.entries(filters)) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            if (key === currentFilter) {
+                el.className = el.className
+                    .replace(/border border-neutral-200 dark:border-neutral-700/g, '')
+                    .replace(/border-2 border-neutral-900 dark:border-white/g, '')
+                    + ' border-2 border-neutral-900 dark:border-white';
+            } else {
+                el.className = el.className
+                    .replace(/border-2 border-neutral-900 dark:border-white/g, '')
+                    .replace(/border border-neutral-200 dark:border-neutral-700/g, '')
+                    + ' border border-neutral-200 dark:border-neutral-700';
+            }
+        }
+    }
+
+    async function loadStock() {
+        const search = searchInput ? searchInput.value.trim() : '';
+        showLoading();
+        const { ok, data } = await apiRequest(
+            `/products/api/stock/?page=${currentPage}&per_page=${itemsPerPage}&search=${encodeURIComponent(search)}&filter=${currentFilter}`
+        );
+        if (!ok) { document.getElementById('cardsGrid').innerHTML = ''; return; }
+
+        data.data.forEach(p => {
+            if (!originalData.has(p.id)) {
+                originalData.set(p.id, p.stock_quantity);
+            }
+        });
+
+        renderCards(data.data);
+        updatePagination(data);
+        updateStats(data.stats);
+
+        const grid = document.getElementById('cardsGrid');
+        if (grid) applyFadeIn(grid);
+    }
+
+    function renderCards(products) {
+        const grid = document.getElementById('cardsGrid');
+        if (!grid) return;
+
+        if (products.length === 0) {
+            grid.innerHTML = `
+                <div class="text-center py-12 flex flex-col items-center justify-center h-full">
+                    <div class="w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-neutral-900 dark:text-white mb-2">Nenhum produto encontrado</h3>
+                    <p class="text-neutral-600 dark:text-neutral-400">Nenhum produto com estoque limitado neste filtro</p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">${products.map(p => renderCard(p)).join('')}</div>`;
+    }
+
+    function renderCard(p) {
+        const dirty = dirtyItems.get(p.id);
+        const mode = dirty ? dirty.mode : 'add';
+        const inputValue = dirty ? dirty.value : (mode === 'add' ? 0 : p.stock_quantity);
+        const isDirty = dirty !== undefined;
+        const originalQty = originalData.get(p.id) ?? p.stock_quantity;
+        const safeName = escapeHtml(p.name);
+        const safeImg = escapeHtml(p.image_url);
+
+        let preview = '';
+        if (isDirty) {
+            if (mode === 'add' && dirty.value > 0) {
+                const result = originalQty + dirty.value;
+                preview = `<p class="text-xs font-medium text-green-600 dark:text-green-400 mt-2">${originalQty} + ${dirty.value} = ${result}</p>`;
+            } else if (mode === 'set' && dirty.value !== originalQty) {
+                const color = dirty.value === 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400';
+                preview = `<p class="text-xs font-medium ${color} mt-2">${originalQty} &rarr; ${dirty.value}</p>`;
+            }
+        }
+
+        return `
+        <div class="p-3 rounded-lg border ${isDirty ? 'border-l-4 border-yellow-400 dark:border-yellow-500 bg-yellow-50/30 dark:bg-yellow-900/10' : 'border-neutral-200 dark:border-neutral-700'} transition-all duration-200" data-product-id="${p.id}">
+            <!-- Product Info -->
+            <div class="flex items-center space-x-3 mb-3">
+                <div class="w-10 h-10 bg-neutral-100 dark:bg-neutral-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    ${p.image_url
+                        ? `<img src="${safeImg}" alt="${safeName}" class="w-10 h-10 rounded-lg object-cover">`
+                        : `<svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>`}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate" title="${safeName}">${safeName}</h4>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-xs text-neutral-500 dark:text-neutral-400">R$ ${parseFloat(p.price).toFixed(2)}</span>
+                        ${stockBadge(originalQty)}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mode Toggle -->
+            <div class="flex rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-600 mb-3">
+                <button onclick="switchMode(${p.id}, 'set')" class="flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'set' ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600'}">
+                    Definir
+                </button>
+                <button onclick="switchMode(${p.id}, 'add')" class="flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'add' ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600'}">
+                    Adicionar
+                </button>
+            </div>
+
+            <!-- Stepper -->
+            <div class="flex items-center justify-center gap-2">
+                <button onclick="stepValue(${p.id}, -1)" class="w-11 h-11 flex items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors duration-200 active:scale-95 text-lg font-bold">
+                    &minus;
+                </button>
+                <input
+                    type="number"
+                    id="input-${p.id}"
+                    value="${inputValue}"
+                    min="0"
+                    inputmode="numeric"
+                    onchange="onInputChange(${p.id}, this.value)"
+                    onkeydown="if(event.key==='Enter'){this.blur()}"
+                    class="w-16 h-11 text-center text-sm font-semibold rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400">
+                <button onclick="stepValue(${p.id}, 1)" class="w-11 h-11 flex items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors duration-200 active:scale-95 text-lg font-bold">
+                    +
+                </button>
+            </div>
+
+            <!-- Preview -->
+            ${preview}
+        </div>`;
+    }
+
+    window.switchMode = function(productId, newMode) {
+        const original = originalData.get(productId);
+        const defaultValue = newMode === 'add' ? 0 : original;
+        dirtyItems.set(productId, { mode: newMode, value: defaultValue });
+
+        if (newMode === 'add' && defaultValue === 0) {
+            dirtyItems.delete(productId);
+        }
+        if (newMode === 'set' && defaultValue === original) {
+            dirtyItems.delete(productId);
+        }
+
+        refreshCard(productId);
+        updateSaveBar();
+    };
+
+    window.stepValue = function(productId, delta) {
+        const original = originalData.get(productId);
+        const dirty = dirtyItems.get(productId);
+        const mode = dirty ? dirty.mode : 'add';
+        let current = dirty ? dirty.value : (mode === 'add' ? 0 : original);
+        let newVal = Math.max(0, current + delta);
+
+        if (mode === 'add' && newVal === 0) {
+            dirtyItems.delete(productId);
+        } else if (mode === 'set' && newVal === original) {
+            dirtyItems.delete(productId);
+        } else {
+            dirtyItems.set(productId, { mode, value: newVal });
+        }
+
+        refreshCard(productId);
+        updateSaveBar();
+    };
+
+    window.onInputChange = function(productId, rawValue) {
+        const original = originalData.get(productId);
+        const dirty = dirtyItems.get(productId);
+        const mode = dirty ? dirty.mode : 'add';
+        let val = parseInt(rawValue) || 0;
+        if (val < 0) val = 0;
+
+        if (mode === 'add' && val === 0) {
+            dirtyItems.delete(productId);
+        } else if (mode === 'set' && val === original) {
+            dirtyItems.delete(productId);
+        } else {
+            dirtyItems.set(productId, { mode, value: val });
+        }
+
+        refreshCard(productId);
+        updateSaveBar();
+    };
+
+    function refreshCard(productId) {
+        const cardEl = document.querySelector(`[data-product-id="${productId}"]`);
+        if (!cardEl) return;
+        const original = originalData.get(productId);
+        const allData = Array.from(document.querySelectorAll('[data-product-id]')).map(el => {
+            const id = parseInt(el.dataset.productId);
+            return { id };
+        });
+
+        const { ok, data } = { ok: true, data: null };
+
+        const dirty = dirtyItems.get(productId);
+        const mode = dirty ? dirty.mode : 'add';
+        const inputValue = dirty ? dirty.value : (mode === 'add' ? 0 : original);
+        const isDirty = dirty !== undefined;
+
+        const nameEl = cardEl.querySelector('h4');
+        const name = nameEl ? nameEl.textContent : '';
+        const imgEl = cardEl.querySelector('img');
+        const imgUrl = imgEl ? imgEl.src : '';
+        const priceEl = cardEl.querySelector('.text-xs.text-neutral-500');
+        const price = priceEl ? priceEl.textContent : '';
+
+        if (isDirty) {
+            cardEl.className = 'p-3 rounded-lg border border-l-4 border-yellow-400 dark:border-yellow-500 bg-yellow-50/30 dark:bg-yellow-900/10 transition-all duration-200';
+        } else {
+            cardEl.className = 'p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 transition-all duration-200';
+        }
+
+        const modeButtons = cardEl.querySelectorAll('.flex.rounded-lg.overflow-hidden button');
+        if (modeButtons.length === 2) {
+            const activeClass = 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900';
+            const inactiveClass = 'bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600';
+            modeButtons[0].className = `flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'set' ? activeClass : inactiveClass}`;
+            modeButtons[1].className = `flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'add' ? activeClass : inactiveClass}`;
+        }
+
+        const input = document.getElementById(`input-${productId}`);
+        if (input && document.activeElement !== input) {
+            input.value = inputValue;
+        }
+
+        let previewEl = cardEl.querySelector('.preview-text');
+        if (!previewEl) {
+            previewEl = document.createElement('div');
+            previewEl.className = 'preview-text';
+            cardEl.appendChild(previewEl);
+        }
+
+        if (isDirty) {
+            if (mode === 'add' && dirty.value > 0) {
+                const result = original + dirty.value;
+                previewEl.innerHTML = `<p class="text-xs font-medium text-green-600 dark:text-green-400 mt-2">${original} + ${dirty.value} = ${result}</p>`;
+            } else if (mode === 'set' && dirty.value !== original) {
+                const color = dirty.value === 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400';
+                previewEl.innerHTML = `<p class="text-xs font-medium ${color} mt-2">${original} &rarr; ${dirty.value}</p>`;
+            } else {
+                previewEl.innerHTML = '';
+            }
+        } else {
+            previewEl.innerHTML = '';
+        }
+    }
+
+    function updateSaveBar() {
+        const count = dirtyItems.size;
+        const dirtyCountEl = document.getElementById('dirtyCount');
+        if (dirtyCountEl) dirtyCountEl.textContent = count;
+        if (saveBar) saveBar.classList.toggle('hidden', count === 0);
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async function() {
+            if (dirtyItems.size === 0) return;
+
+            setButtonLoading(saveBtn, true, 'Salvando...');
+
+            const updates = [];
+            dirtyItems.forEach((val, id) => {
+                updates.push({ id, mode: val.mode, value: val.value });
+            });
+
+            const { ok, data } = await apiRequest('/products/api/stock/bulk-update/', {
+                method: 'POST',
+                body: JSON.stringify({ updates }),
+            });
+
+            setButtonLoading(saveBtn, false);
+
+            if (ok) {
+                showToast(apiMessage(data), 'success');
+                dirtyItems.clear();
+                originalData.clear();
+                updateSaveBar();
+                loadStock();
+            } else {
+                showToast(apiMessage(data), 'error');
+            }
+        });
+    }
+
+    if (discardBtn) {
+        discardBtn.addEventListener('click', async function() {
+            const confirmed = await confirmModal({
+                title: 'Descartar alteracoes',
+                message: `Tem certeza que deseja descartar ${dirtyItems.size} alteracao(es) pendente(s)?`,
+                confirmText: 'Descartar',
+            });
+            if (!confirmed) return;
+
+            dirtyItems.clear();
+            updateSaveBar();
+            loadStock();
+        });
+    }
+
+    function updateStats(stats) {
+        if (!stats) return;
+        const el = (id) => document.getElementById(id);
+        if (el('statTotal')) animateNumber(el('statTotal'), stats.total_limited);
+        if (el('statLow')) animateNumber(el('statLow'), stats.low_stock);
+        if (el('statOut')) animateNumber(el('statOut'), stats.out_of_stock);
+    }
+
+    function updatePagination(data) {
+        const pg = data.page;
+        const paginationEl = document.getElementById('paginationControls');
+        if (paginationEl) paginationEl.style.display = (pg && pg.total_items > 0) ? '' : 'none';
+
+        if (resultsInfo) {
+            if (!pg || pg.total_items === 0) {
+                resultsInfo.textContent = 'Nenhum produto encontrado';
+            } else {
+                const start = (pg.current - 1) * pg.per_page + 1;
+                const end = Math.min(pg.current * pg.per_page, pg.total_items);
+                resultsInfo.textContent = `${start}-${end} de ${pg.total_items}`;
+            }
+        }
+
+        if (prevButton) prevButton.disabled = !pg || pg.current <= 1;
+        if (nextButton) nextButton.disabled = !pg || pg.current >= pg.total_pages;
+
+        if (pageNumbers) {
+            pageNumbers.innerHTML = '';
+            if (pg && pg.total_pages > 1) {
+                let startPage = Math.max(1, pg.current - 2);
+                let endPage = Math.min(pg.total_pages, startPage + 4);
+                if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+                for (let i = startPage; i <= endPage; i++) {
+                    const btn = document.createElement('button');
+                    btn.textContent = i;
+                    btn.className = `px-3 py-1.5 text-sm font-medium rounded transition-colors duration-200 ${
+                        i === pg.current
+                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                            : 'border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'
+                    }`;
+                    btn.addEventListener('click', () => { currentPage = i; loadStock(); });
+                    pageNumbers.appendChild(btn);
+                }
+            }
+        }
+    }
+});
+</script>
+
+{% endblock %}
