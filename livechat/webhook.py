@@ -6,8 +6,11 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
+from django.db import IntegrityError
+from django.db.models import Q
+
 from contacts.models import Contact
-from .models import Conversation, ChatMessage
+from .models import Conversation, ChatMessage, Cart, Sale
 from utils.api_response import log_system_event
 
 
@@ -132,7 +135,7 @@ def _process_single_message(data):
             return
         # Nao e echo — mensagem enviada externamente (pelo celular), continuar registrando
 
-    waba_id = remote_jid.split('@')[0]
+    lid = remote_jid.split('@')[0]
 
     # Extrair telefone e nome apenas de mensagens recebidas (fromMe=false)
     # Mensagens fromMe=true vem com pushName/sender da instancia, nao do contato
@@ -147,24 +150,51 @@ def _process_single_message(data):
         elif remote_jid_alt:
             phone = remote_jid_alt.split('@')[0]
         elif '@s.whatsapp.net' in remote_jid:
-            phone = waba_id
+            phone = lid
 
-    contact, created = Contact.objects.get_or_create(
-        waba_id=waba_id,
-        defaults={'name': push_name or waba_id, 'phone': phone}
-    )
+    # Cross-reference lookup: buscar por lid OU phone
+    contact_by_lid = Contact.objects.filter(lid=lid).first()
+    contact_by_phone = Contact.objects.filter(phone=phone).first() if phone else None
 
-    # Atualizar dados do contato existente quando o contato responder (fromMe=false)
-    if not created and not from_me:
-        update_fields = []
-        if push_name and contact.name == waba_id:
-            contact.name = push_name
-            update_fields.append('name')
-        if phone and not contact.phone:
-            contact.phone = phone
-            update_fields.append('phone')
-        if update_fields:
-            contact.save(update_fields=update_fields)
+    if contact_by_lid and contact_by_phone and contact_by_lid.id != contact_by_phone.id:
+        # Conflito: lid e phone apontam para contatos diferentes — merge
+        if contact_by_lid.id < contact_by_phone.id:
+            primary, secondary = contact_by_lid, contact_by_phone
+        else:
+            primary, secondary = contact_by_phone, contact_by_lid
+        _merge_contacts(primary, secondary)
+        contact = primary
+    elif contact_by_lid:
+        contact = contact_by_lid
+    elif contact_by_phone:
+        contact = contact_by_phone
+    else:
+        # Criar novo contato (com fallback para race conditions)
+        try:
+            contact = Contact.objects.create(
+                lid=lid, phone=phone or None,
+                name=push_name or phone or lid,
+            )
+        except IntegrityError:
+            contact = Contact.objects.filter(
+                Q(lid=lid) | (Q(phone=phone) if phone else Q())
+            ).first()
+            if not contact:
+                raise
+
+    # Enriquecer contato existente
+    update_fields = []
+    if not contact.lid and lid:
+        contact.lid = lid
+        update_fields.append('lid')
+    if not contact.phone and phone:
+        contact.phone = phone
+        update_fields.append('phone')
+    if not from_me and push_name and contact.name in (lid, contact.lid, contact.phone):
+        contact.name = push_name
+        update_fields.append('name')
+    if update_fields:
+        contact.save(update_fields=update_fields)
 
     conversation, _ = Conversation.objects.get_or_create(
         remote_jid=remote_jid,
@@ -202,6 +232,67 @@ def _process_single_message(data):
     if direction == 'in':
         conversation.unread_count += 1
     conversation.save()
+
+
+def _merge_contacts(primary, secondary):
+    """Merge secondary contact into primary. Deleta secondary."""
+    from wppmessages.models import Message as WppMessage
+
+    # Copiar campos faltantes do secondary para primary
+    update_fields = []
+    if not primary.lid and secondary.lid:
+        primary.lid = secondary.lid
+        update_fields.append('lid')
+    if not primary.phone and secondary.phone:
+        primary.phone = secondary.phone
+        update_fields.append('phone')
+    if primary.name in (primary.lid, primary.phone) and secondary.name not in (secondary.lid, secondary.phone):
+        primary.name = secondary.name
+        update_fields.append('name')
+    if update_fields:
+        primary.save(update_fields=update_fields)
+
+    # Obter conversations
+    try:
+        primary_conv = Conversation.objects.get(contact=primary)
+    except Conversation.DoesNotExist:
+        primary_conv = None
+    try:
+        secondary_conv = Conversation.objects.get(contact=secondary)
+    except Conversation.DoesNotExist:
+        secondary_conv = None
+
+    if secondary_conv:
+        if primary_conv:
+            # Mover mensagens e carts do secondary conv para primary conv
+            ChatMessage.objects.filter(conversation=secondary_conv).update(
+                conversation=primary_conv, contact=primary)
+            Cart.objects.filter(conversation=secondary_conv).update(
+                conversation=primary_conv, contact=primary)
+            # Atualizar resumo se secondary e mais recente
+            if (secondary_conv.last_message_at and
+                (not primary_conv.last_message_at or
+                 secondary_conv.last_message_at > primary_conv.last_message_at)):
+                primary_conv.last_message_text = secondary_conv.last_message_text
+                primary_conv.last_message_at = secondary_conv.last_message_at
+                primary_conv.last_message_direction = secondary_conv.last_message_direction
+            primary_conv.unread_count += secondary_conv.unread_count
+            primary_conv.save()
+            secondary_conv.delete()
+        else:
+            secondary_conv.contact = primary
+            secondary_conv.save(update_fields=['contact'])
+
+    # Reatribuir registros orfaos restantes
+    ChatMessage.objects.filter(contact=secondary).update(contact=primary)
+    Cart.objects.filter(contact=secondary).update(contact=primary)
+    Sale.objects.filter(contact=secondary).update(contact=primary)
+    WppMessage.objects.filter(contact=secondary).update(contact=primary)
+
+    sec_id = secondary.id
+    secondary.delete()
+    log_system_event('INFO', 'livechat.webhook.merge_contacts',
+        f'Merged contact #{sec_id} into #{primary.id}')
 
 
 def _handle_messages_update(payload):

@@ -25,7 +25,7 @@ class ContactForm(forms.ModelForm):
     def clean_phone(self):
         phone = self.cleaned_data.get('phone', '').strip()
         if not phone:
-            return ''
+            return None
         phone = phone.replace("(", "").replace(")", "").replace("-", "").replace(" ", "").replace("+", "")
         if not phone.isdigit():
             raise forms.ValidationError("O telefone deve conter apenas números")

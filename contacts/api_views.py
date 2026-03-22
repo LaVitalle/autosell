@@ -36,7 +36,7 @@ def api_list_contacts(request):
         data.append({
             'id': c.id,
             'name': c.name,
-            'phone': c.phone,
+            'phone': c.phone or '',
             'created_at': c.created_at.isoformat() if c.created_at else '',
             'message_count': c.message_count,
         })
@@ -71,7 +71,7 @@ def api_create_contact(request):
                 data=[{
                     'id': contact.id,
                     'name': contact.name,
-                    'phone': contact.phone,
+                    'phone': contact.phone or '',
                 }],
                 message='Contato criado com sucesso',
                 status_code=201,
@@ -97,7 +97,7 @@ def api_edit_contact(request, contact_id):
                 data=[{
                     'id': contact.id,
                     'name': contact.name,
-                    'phone': contact.phone,
+                    'phone': contact.phone or '',
                 }],
                 message='Contato atualizado com sucesso',
             )

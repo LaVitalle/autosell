@@ -63,8 +63,8 @@ def send_media_message(number: str, mediatype: str, mimetype: str, caption: str,
 
 
 def resolve_contact_number(contact):
-    """Retorna o identificador para envio: prioriza phone (JID), fallback waba_id (LID)."""
-    return contact.phone or contact.waba_id or ''
+    """Retorna o identificador para envio: prioriza phone (JID), fallback lid (LID)."""
+    return contact.phone or contact.lid or ''
 
 
 def resolve_conversation_number(conversation):

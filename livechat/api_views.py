@@ -368,12 +368,12 @@ def api_update_contact(request, conversation_id):
             contact.name = name
             update_fields.append('name')
         if phone is not None:
-            contact.phone = phone.strip()
+            contact.phone = phone.strip() or None
             update_fields.append('phone')
 
         contact.save(update_fields=update_fields)
 
-        return api_success(data={'name': contact.name, 'phone': contact.phone}, message='Contato atualizado')
+        return api_success(data={'name': contact.name, 'phone': contact.phone or ''}, message='Contato atualizado')
     except Exception:
         return api_exception(request, 'livechat.api.update_contact')
 
