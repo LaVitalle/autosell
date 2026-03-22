@@ -10,9 +10,6 @@
     input[type=number] {
         -moz-appearance: textfield;
     }
-    @media (max-width: 767px) {
-        #saveBar { bottom: 4.5rem !important; }
-    }
 </style>
 
 <div class="max-w-7xl mx-auto mobile-content-padding h-full flex flex-col">
@@ -109,9 +106,9 @@
             <div class="flex items-center justify-center sm:justify-start gap-2">
                 <span class="text-xs text-neutral-600 dark:text-neutral-400">Itens por pagina:</span>
                 <select id="itemsPerPage" class="text-sm border border-neutral-300 dark:border-neutral-600 rounded px-2 py-1 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400">
-                    <option value="6">6</option>
-                    <option value="12">12</option>
-                    <option value="24">24</option>
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
                 </select>
             </div>
             <div class="flex items-center justify-center gap-2">
@@ -153,7 +150,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
-    let itemsPerPage = 6;
+    let itemsPerPage = 5;
     let currentFilter = 'all';
     let searchTimeout = null;
     const dirtyItems = new Map();
@@ -333,11 +330,11 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
             <!-- Mode Toggle -->
-            <div class="flex rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-600 mb-3">
-                <button onclick="switchMode(${p.id}, 'set')" class="flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'set' ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600'}">
+            <div class="flex rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-600 mb-3" data-mode-toggle="${p.id}">
+                <button onclick="switchMode(${p.id}, 'set')" data-mode-btn="set" class="flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'set' ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600'}">
                     Definir
                 </button>
-                <button onclick="switchMode(${p.id}, 'add')" class="flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'add' ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600'}">
+                <button onclick="switchMode(${p.id}, 'add')" data-mode-btn="add" class="flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'add' ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900' : 'bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600'}">
                     Adicionar
                 </button>
             </div>
@@ -424,24 +421,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const cardEl = document.querySelector(`[data-product-id="${productId}"]`);
         if (!cardEl) return;
         const original = originalData.get(productId);
-        const allData = Array.from(document.querySelectorAll('[data-product-id]')).map(el => {
-            const id = parseInt(el.dataset.productId);
-            return { id };
-        });
-
-        const { ok, data } = { ok: true, data: null };
-
         const dirty = dirtyItems.get(productId);
         const mode = dirty ? dirty.mode : 'add';
         const inputValue = dirty ? dirty.value : (mode === 'add' ? 0 : original);
         const isDirty = dirty !== undefined;
-
-        const nameEl = cardEl.querySelector('h4');
-        const name = nameEl ? nameEl.textContent : '';
-        const imgEl = cardEl.querySelector('img');
-        const imgUrl = imgEl ? imgEl.src : '';
-        const priceEl = cardEl.querySelector('.text-xs.text-neutral-500');
-        const price = priceEl ? priceEl.textContent : '';
 
         if (isDirty) {
             cardEl.className = 'p-3 rounded-lg border border-l-4 border-yellow-400 dark:border-yellow-500 bg-yellow-50/30 dark:bg-yellow-900/10 transition-all duration-200';
@@ -449,13 +432,12 @@ document.addEventListener('DOMContentLoaded', function() {
             cardEl.className = 'p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 transition-all duration-200';
         }
 
-        const modeButtons = cardEl.querySelectorAll('.flex.rounded-lg.overflow-hidden button');
-        if (modeButtons.length === 2) {
-            const activeClass = 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900';
-            const inactiveClass = 'bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600';
-            modeButtons[0].className = `flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'set' ? activeClass : inactiveClass}`;
-            modeButtons[1].className = `flex-1 py-1.5 text-xs font-medium transition-colors duration-200 ${mode === 'add' ? activeClass : inactiveClass}`;
-        }
+        const activeClass = 'flex-1 py-1.5 text-xs font-medium transition-colors duration-200 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900';
+        const inactiveClass = 'flex-1 py-1.5 text-xs font-medium transition-colors duration-200 bg-neutral-50 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-600';
+        const setBtn = cardEl.querySelector('[data-mode-btn="set"]');
+        const addBtn = cardEl.querySelector('[data-mode-btn="add"]');
+        if (setBtn) setBtn.className = mode === 'set' ? activeClass : inactiveClass;
+        if (addBtn) addBtn.className = mode === 'add' ? activeClass : inactiveClass;
 
         const input = document.getElementById(`input-${productId}`);
         if (input && document.activeElement !== input) {
@@ -488,7 +470,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const count = dirtyItems.size;
         const dirtyCountEl = document.getElementById('dirtyCount');
         if (dirtyCountEl) dirtyCountEl.textContent = count;
-        if (saveBar) saveBar.classList.toggle('hidden', count === 0);
+        if (saveBar) {
+            saveBar.classList.toggle('hidden', count === 0);
+            const bottomNav = document.getElementById('bottomNav');
+            if (bottomNav && window.innerWidth < 768) {
+                saveBar.style.bottom = bottomNav.offsetHeight + 'px';
+            } else {
+                saveBar.style.bottom = '0';
+            }
+        }
     }
 
     if (saveBtn) {
@@ -504,7 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const { ok, data } = await apiRequest('/products/api/stock/bulk-update/', {
                 method: 'POST',
-                body: JSON.stringify({ updates }),
+                body: { updates },
             });
 
             setButtonLoading(saveBtn, false);
