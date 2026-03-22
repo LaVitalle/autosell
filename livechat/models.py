@@ -26,6 +26,7 @@ class ChatMessage(models.Model):
         ('text', 'Text'),
         ('product', 'Product'),
         ('category', 'Category'),
+        ('catalog', 'Catalog'),
         ('image', 'Image'),
     ]
     STATUS_CHOICES = [

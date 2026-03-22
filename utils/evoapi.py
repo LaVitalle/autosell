@@ -86,6 +86,37 @@ def build_product_text(product):
     return '\n'.join(parts)
 
 
+def build_catalog_text(products_by_category, uncategorized_products):
+    """Monta texto do catalogo completo organizado por categoria."""
+    parts = ['\U0001f4cb *Cardapio do Dia*']
+
+    for category_name, products in products_by_category:
+        parts.append('')
+        parts.append(f'*\U0001f3f7 {category_name}*')
+        parts.append('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500')
+        for p in products:
+            line = f'\u2022 *{p.name}* \u2014 R$ {p.price}'
+            parts.append(line)
+            if p.description:
+                parts.append(f'  _{p.description}_')
+            if p.stock_active and p.stock_quantity > 0:
+                parts.append(f'  Restam: {p.stock_quantity} unidades')
+
+    if uncategorized_products:
+        parts.append('')
+        parts.append('*Outros*')
+        parts.append('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500')
+        for p in uncategorized_products:
+            line = f'\u2022 *{p.name}* \u2014 R$ {p.price}'
+            parts.append(line)
+            if p.description:
+                parts.append(f'  _{p.description}_')
+            if p.stock_active and p.stock_quantity > 0:
+                parts.append(f'  Restam: {p.stock_quantity} unidades')
+
+    return '\n'.join(parts)
+
+
 def send_product_message(phone, product):
     text = build_product_text(product)
     if product.image_url:

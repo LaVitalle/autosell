@@ -212,6 +212,11 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
                         </button>
+                        <button id="btnSendCatalog" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Enviar Catalogo">
+                            <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                            </svg>
+                        </button>
                     </div>
                     <textarea id="messageInput" rows="1" placeholder="Digite uma mensagem..."
                         class="flex-1 resize-none px-3 py-2 text-sm bg-neutral-100 dark:bg-neutral-700 border-none rounded-lg text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600 max-h-24"
@@ -367,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnSendProduct').addEventListener('click', () => openProductModal('send'));
     document.getElementById('btnSendCategory').addEventListener('click', openCategoryModal);
     document.getElementById('btnAddToCart').addEventListener('click', () => openProductModal('cart'));
+    document.getElementById('btnSendCatalog').addEventListener('click', sendCatalog);
     document.getElementById('btnQuickSell').addEventListener('click', () => openProductModal('quicksell'));
     document.getElementById('btnCart').addEventListener('click', openCartModal);
     document.getElementById('btnNewConv').addEventListener('click', openContactPicker);
@@ -812,6 +818,22 @@ async function sendCategory(catId) {
 }
 
 function closeCategoryModal() { document.getElementById('categoryModal').style.display = 'none'; }
+
+// ===== Catalog =====
+async function sendCatalog() {
+    if (!currentConvId) return;
+    showToast('Enviando catalogo...', 'info', 2000);
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/send-catalog/`, {
+        method: 'POST', body: {}
+    });
+    if (res.ok) {
+        showToast('Catalogo enviado', 'success');
+        loadMessages();
+        loadConversations();
+    } else {
+        showToast(apiMessage(res.data), 'error');
+    }
+}
 
 // ===== Cart =====
 async function loadCartBadge() {

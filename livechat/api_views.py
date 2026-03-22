@@ -13,7 +13,7 @@ from products.models import Product
 from categories.models import Category
 from .models import Conversation, ChatMessage, Cart, CartItem, Sale, SaleItem
 from utils.api_response import api_success, api_error, api_exception, log_system_event
-from utils.evoapi import send_text_message, send_product_message, build_product_text, mark_message_as_read, resolve_conversation_number
+from utils.evoapi import send_text_message, send_product_message, build_product_text, build_catalog_text, mark_message_as_read, resolve_conversation_number
 
 
 # ─── Conversations ───────────────────────────────────────────────────────────
@@ -307,6 +307,79 @@ def api_send_category(request, conversation_id):
         return api_error('Categoria nao encontrada', 404)
     except Exception:
         return api_exception(request, 'livechat.api.send_category')
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_send_catalog(request, conversation_id):
+    try:
+        conversation = Conversation.objects.select_related('contact').get(id=conversation_id)
+    except Conversation.DoesNotExist:
+        return api_error('Conversa nao encontrada', 404)
+
+    try:
+        available = Product.objects.exclude(stock_active=True, stock_quantity=0)
+        if not available.exists():
+            return api_error('Nenhum produto disponivel', 400)
+
+        # Agrupar por categoria
+        categories = Category.objects.prefetch_related('products').all()
+        categorized_ids = set()
+        products_by_category = []
+
+        for cat in categories:
+            cat_products = [p for p in cat.products.all() if not (p.stock_active and p.stock_quantity == 0)]
+            if cat_products:
+                products_by_category.append((cat.name, cat_products))
+                categorized_ids.update(p.id for p in cat_products)
+
+        uncategorized = [p for p in available if p.id not in categorized_ids]
+
+        text = build_catalog_text(products_by_category, uncategorized)
+
+        number = resolve_conversation_number(conversation)
+        result = send_text_message(number, text)
+        if not result and number != conversation.remote_jid:
+            result = send_text_message(conversation.remote_jid, text)
+
+        now = dj_timezone.now()
+        wpp_id = None
+        status = 'failed'
+        if result:
+            wpp_id = result.get('key', {}).get('id') if isinstance(result, dict) else None
+            status = 'sent'
+
+        msg = ChatMessage.objects.create(
+            contact=conversation.contact,
+            conversation=conversation,
+            remote_jid=conversation.remote_jid,
+            wpp_message_id=wpp_id,
+            direction='out',
+            msg_type='catalog',
+            content=text,
+            status=status,
+            timestamp=now,
+        )
+
+        conversation.last_message_text = '[Catalogo] Cardapio do Dia'[:200]
+        conversation.last_message_at = now
+        conversation.last_message_direction = 'out'
+        conversation.save()
+
+        if status == 'failed':
+            return api_error('Falha ao enviar catalogo', 500)
+
+        return api_success(data={
+            'id': msg.id,
+            'direction': 'out',
+            'msg_type': 'catalog',
+            'content': text,
+            'status': status,
+            'timestamp': now.isoformat(),
+            'wpp_message_id': wpp_id,
+        })
+    except Exception:
+        return api_exception(request, 'livechat.api.send_catalog')
 
 
 @login_required
