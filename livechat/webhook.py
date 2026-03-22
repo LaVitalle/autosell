@@ -98,21 +98,31 @@ def _process_single_message(data):
         ''
     )
 
-    if not text and message_data.get('imageMessage'):
-        text = message_data['imageMessage'].get('caption', '[Imagem]')
-    if not text and message_data.get('videoMessage'):
+    msg_type = 'text'
+    media_url = None
+
+    if message_data.get('imageMessage'):
+        img_msg = message_data['imageMessage']
+        if not text:
+            text = img_msg.get('caption', '')
+        msg_type = 'image'
+        media_url = _download_media(data, 'image', img_msg.get('mimetype', 'image/jpeg'))
+    elif message_data.get('audioMessage'):
+        audio_msg = message_data['audioMessage']
+        msg_type = 'audio'
+        media_url = _download_media(data, 'audio', audio_msg.get('mimetype', 'audio/ogg'))
+    elif not text and message_data.get('videoMessage'):
         text = message_data['videoMessage'].get('caption', '[Video]')
-    if not text and message_data.get('audioMessage'):
-        text = '[Audio]'
-    if not text and message_data.get('documentMessage'):
+    elif not text and message_data.get('documentMessage'):
         text = message_data['documentMessage'].get('fileName', '[Documento]')
-    if not text and message_data.get('stickerMessage'):
+    elif not text and message_data.get('stickerMessage'):
         text = '[Sticker]'
-    if not text and message_data.get('contactMessage'):
+    elif not text and message_data.get('contactMessage'):
         text = '[Contato]'
-    if not text and message_data.get('locationMessage'):
+    elif not text and message_data.get('locationMessage'):
         text = '[Localizacao]'
-    if not text:
+
+    if not text and not media_url:
         text = '[Mensagem]'
 
     # Dedup para mensagens fromMe=true (echo de mensagem enviada pelo nosso sistema)
@@ -219,19 +229,79 @@ def _process_single_message(data):
         remote_jid=remote_jid,
         wpp_message_id=wpp_message_id,
         direction=direction,
-        msg_type='text',
+        msg_type=msg_type,
         content=text,
+        media_url=media_url,
         status=status,
         timestamp=ts,
     )
 
-    preview = text[:200] if text else ''
+    if text:
+        preview = text[:200]
+    elif msg_type == 'image':
+        preview = '[Imagem]'
+    elif msg_type == 'audio':
+        preview = '[Audio]'
+    else:
+        preview = '[Mensagem]'
     conversation.last_message_text = preview
     conversation.last_message_at = ts
     conversation.last_message_direction = direction
     if direction == 'in':
         conversation.unread_count += 1
     conversation.save()
+
+
+def _download_media(data, media_type, mimetype):
+    """Baixa mídia do payload do webhook e armazena no MinIO.
+    Tenta: 1) base64 do payload  2) mediaUrl  3) jpegThumbnail (imagens)"""
+    import uuid
+    from utils.storage import upload_media_from_base64, upload_media_from_url
+
+    try:
+        message_data = data.get('message', {}) or {}
+        media_key = f'{media_type}Message'
+
+        # Mapear mimetype para extensão
+        ext_map = {
+            'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp',
+            'image/gif': '.gif',
+            'audio/ogg': '.ogg', 'audio/ogg; codecs=opus': '.ogg',
+            'audio/mpeg': '.mp3', 'audio/mp4': '.m4a', 'audio/aac': '.aac',
+        }
+        ext = ext_map.get(mimetype.split(';')[0].strip(), '.jpg' if media_type == 'image' else '.ogg')
+        file_name = f'chat_media/{media_type}_{uuid.uuid4().hex[:12]}{ext}'
+
+        # Fonte 1: base64 no nível raiz do payload
+        base64_data = data.get('base64')
+        if base64_data:
+            log_system_event('INFO', 'livechat.webhook.download_media',
+                f'Usando base64 do payload para {media_type}')
+            return upload_media_from_base64(file_name, base64_data)
+
+        # Fonte 2: mediaUrl (quando S3 configurado na Evolution)
+        media_url = data.get('mediaUrl')
+        if media_url:
+            log_system_event('INFO', 'livechat.webhook.download_media',
+                f'Usando mediaUrl para {media_type}: {media_url[:100]}')
+            return upload_media_from_url(file_name, media_url)
+
+        # Fonte 3: jpegThumbnail (fallback baixa qualidade, apenas imagens)
+        if media_type == 'image':
+            thumbnail = message_data.get(media_key, {}).get('jpegThumbnail')
+            if thumbnail:
+                log_system_event('INFO', 'livechat.webhook.download_media',
+                    f'Usando jpegThumbnail como fallback para imagem')
+                file_name = f'chat_media/image_{uuid.uuid4().hex[:12]}.jpg'
+                return upload_media_from_base64(file_name, thumbnail)
+
+        log_system_event('WARNING', 'livechat.webhook.download_media',
+            f'Nenhuma fonte de midia disponivel para {media_type}')
+        return None
+    except Exception as e:
+        log_system_event('ERROR', 'livechat.webhook.download_media',
+            f'{type(e).__name__}: {e}')
+        return None
 
 
 def _merge_contacts(primary, secondary):

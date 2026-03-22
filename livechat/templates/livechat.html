@@ -112,6 +112,50 @@
         font-weight: 600; padding: 0 4px;
     }
     .dark .cart-badge { background: #fafafa; color: #171717; }
+
+    /* WhatsApp Markdown */
+    .bubble-in code, .bubble-out code {
+        background: rgba(0,0,0,0.08);
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 0.85em;
+        font-family: monospace;
+    }
+    .dark .bubble-in code { background: rgba(255,255,255,0.1); }
+    .bubble-out code { background: rgba(255,255,255,0.15); }
+    .bubble-in pre, .bubble-out pre {
+        background: rgba(0,0,0,0.08);
+        padding: 8px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 4px 0;
+        font-size: 0.85em;
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+    .dark .bubble-in pre { background: rgba(255,255,255,0.1); }
+    .bubble-out pre { background: rgba(255,255,255,0.15); }
+
+    /* Media in bubbles */
+    .bubble-in img, .bubble-out img {
+        display: block;
+        border-radius: 8px;
+    }
+
+    /* Action menu */
+    .action-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 14px;
+        font-size: 0.875rem;
+        color: #171717;
+        transition: background 0.15s;
+    }
+    .action-menu-item:hover { background: rgba(0,0,0,0.05); }
+    .dark .action-menu-item { color: #fafafa; }
+    .dark .action-menu-item:hover { background: rgba(255,255,255,0.07); }
 </style>
 
 <div class="chat-container" id="chatContainer">
@@ -195,28 +239,39 @@
             <!-- Input -->
             <div class="px-3 py-2 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
                 <div class="flex items-end gap-2">
-                    <!-- Action buttons -->
-                    <div class="flex gap-1 pb-1">
-                        <button id="btnSendProduct" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Enviar Produto">
+                    <!-- Action menu -->
+                    <div class="relative pb-1">
+                        <button id="btnActionsToggle" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-transform" title="Acoes">
                             <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v.01M12 12v.01M12 18v.01"/>
                             </svg>
                         </button>
-                        <button id="btnSendCategory" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Enviar Categoria">
-                            <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                            </svg>
-                        </button>
-                        <button id="btnAddToCart" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Adicionar ao Carrinho">
-                            <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
-                        </button>
-                        <button id="btnSendCatalog" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Enviar Catalogo">
-                            <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                            </svg>
-                        </button>
+                        <div id="actionsMenu" class="hidden absolute bottom-full left-0 mb-2 w-52 bg-white dark:bg-neutral-800 rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 z-50">
+                            <button id="btnSendProduct" class="action-menu-item">
+                                <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                </svg>
+                                <span>Enviar Produto</span>
+                            </button>
+                            <button id="btnSendCategory" class="action-menu-item">
+                                <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                </svg>
+                                <span>Enviar Categoria</span>
+                            </button>
+                            <button id="btnAddToCart" class="action-menu-item">
+                                <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                <span>Adicionar ao Carrinho</span>
+                            </button>
+                            <button id="btnSendCatalog" class="action-menu-item">
+                                <svg class="w-5 h-5 text-neutral-500 dark:text-neutral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                </svg>
+                                <span>Enviar Catalogo</span>
+                            </button>
+                        </div>
                     </div>
                     <textarea id="messageInput" rows="1" placeholder="Digite uma mensagem..."
                         class="flex-1 resize-none px-3 py-2 text-sm bg-neutral-100 dark:bg-neutral-700 border-none rounded-lg text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600 max-h-24"
@@ -369,6 +424,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); }
     });
     document.getElementById('messageInput').addEventListener('input', autoResize);
+    // Action menu toggle
+    const actionsMenu = document.getElementById('actionsMenu');
+    document.getElementById('btnActionsToggle').addEventListener('click', (e) => {
+        e.stopPropagation();
+        actionsMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', () => actionsMenu.classList.add('hidden'));
+    actionsMenu.addEventListener('click', () => actionsMenu.classList.add('hidden'));
+    document.getElementById('messageInput').addEventListener('focus', () => actionsMenu.classList.add('hidden'));
+
     document.getElementById('btnSendProduct').addEventListener('click', () => openProductModal('send'));
     document.getElementById('btnSendCategory').addEventListener('click', openCategoryModal);
     document.getElementById('btnAddToCart').addEventListener('click', () => openProductModal('cart'));
@@ -522,19 +587,39 @@ function renderMessage(m) {
         </div>`;
     } else if (m.msg_type === 'category') {
         content = `<div class="bubble-product pl-2">
-            <p class="text-sm">${escHtml(m.content)}</p>
+            <p class="text-sm whitespace-pre-wrap break-words">${formatWhatsApp(escHtml(m.content))}</p>
         </div>`;
+    } else if (m.msg_type === 'image' && m.media_url) {
+        const caption = m.content ? `<p class="text-sm whitespace-pre-wrap break-words mt-1.5">${formatWhatsApp(escHtml(m.content))}</p>` : '';
+        content = `<div>
+            <img src="${escHtml(m.media_url)}" alt="Imagem"
+                class="rounded-lg max-w-[280px] max-h-[300px] cursor-pointer object-cover"
+                onclick="window.open(this.src,'_blank')" loading="lazy">
+            ${caption}
+        </div>`;
+    } else if (m.msg_type === 'audio' && m.media_url) {
+        content = `<div>
+            <audio controls preload="metadata" class="max-w-[250px] min-w-[200px]">
+                <source src="${escHtml(m.media_url)}">
+            </audio>
+        </div>`;
+    } else if ((m.msg_type === 'image' || m.msg_type === 'audio') && !m.media_url) {
+        const label = m.msg_type === 'image' ? '\ud83d\udcf7 Imagem' : '\ud83c\udfb5 Audio';
+        content = `<p class="text-sm opacity-60 italic">${label}</p>`;
     } else {
-        content = `<p class="text-sm whitespace-pre-wrap break-words">${content}</p>`;
+        content = `<p class="text-sm whitespace-pre-wrap break-words">${formatWhatsApp(content)}</p>`;
     }
 
     const statusIcon = isOut ? getStatusIcon(m.status) : '';
     const time = formatTime(m.timestamp);
 
+    const isImage = m.msg_type === 'image' && m.media_url;
+    const mediaPadding = isImage ? 'p-1' : 'px-3 py-1.5';
+    const footerPadding = isImage ? 'px-1.5' : '';
     return `<div class="flex ${align} mb-1.5" data-msg-id="${m.id}">
-        <div class="${bubbleClass} ${textColor} px-3 py-1.5">
+        <div class="${bubbleClass} ${textColor} ${mediaPadding}">
             ${content}
-            <div class="flex items-center justify-end gap-1 mt-0.5">
+            <div class="flex items-center justify-end gap-1 mt-0.5 ${footerPadding}">
                 <span class="text-[10px] opacity-50">${time}</span>
                 ${statusIcon}
             </div>
@@ -980,6 +1065,17 @@ function escHtml(s) {
     const d = document.createElement('div');
     d.textContent = s;
     return d.innerHTML;
+}
+
+function formatWhatsApp(text) {
+    // Aplicar sobre texto já HTML-escaped
+    // Ordem: code blocks → inline code → bold → italic → strikethrough
+    text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    text = text.replace(/(?<!\w)\*((?!\s)(?:(?!\*).)+(?<!\s))\*(?!\w)/g, '<strong>$1</strong>');
+    text = text.replace(/(?<!\w)_((?!\s)(?:(?!_).)+(?<!\s))_(?!\w)/g, '<em>$1</em>');
+    text = text.replace(/(?<!\w)~((?!\s)(?:(?!~).)+(?<!\s))~(?!\w)/g, '<del>$1</del>');
+    return text;
 }
 
 function formatTime(iso) {

@@ -125,7 +125,7 @@ def send_product_message(phone, product):
             mediatype='image',
             mimetype='image/png',
             caption=text,
-            media=f'{settings.SITE_URL}{product.image_url}',
+            media=product.image_url if product.image_url.startswith('http') else f'{settings.SITE_URL}{product.image_url}',
             fileName=f'{product.name}.png'
         )
     return send_text_message(phone, text)

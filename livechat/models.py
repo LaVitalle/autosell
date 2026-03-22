@@ -28,6 +28,7 @@ class ChatMessage(models.Model):
         ('category', 'Category'),
         ('catalog', 'Catalog'),
         ('image', 'Image'),
+        ('audio', 'Audio'),
     ]
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -44,6 +45,7 @@ class ChatMessage(models.Model):
     direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES)
     msg_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='text')
     content = models.TextField(blank=True, default='')
+    media_url = models.URLField(max_length=500, blank=True, null=True)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')

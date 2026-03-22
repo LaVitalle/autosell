@@ -1,11 +1,13 @@
 import os
 import re
+import uuid
+import base64
 import unicodedata
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
-ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp3', '.ogg', '.opus', '.m4a', '.aac'}
 
 
 def clean_file_name(file_name: str) -> str:
@@ -23,6 +25,30 @@ def upload_file(file_name: str, file) -> str:
     file_content = file.read() if hasattr(file, "read") else file
     saved_name = default_storage.save(file_name, ContentFile(file_content))
 
+    return default_storage.url(saved_name)
+
+
+def upload_media_from_base64(file_name: str, base64_data: str) -> str:
+    """Upload de mídia a partir de dados base64. Retorna URL do MinIO ou None."""
+    ext = os.path.splitext(file_name)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return None
+    file_name = clean_file_name(file_name)
+    file_content = base64.b64decode(base64_data)
+    saved_name = default_storage.save(file_name, ContentFile(file_content))
+    return default_storage.url(saved_name)
+
+
+def upload_media_from_url(file_name: str, url: str) -> str:
+    """Download de mídia a partir de URL e upload para MinIO. Retorna URL ou None."""
+    import requests
+    ext = os.path.splitext(file_name)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return None
+    file_name = clean_file_name(file_name)
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    saved_name = default_storage.save(file_name, ContentFile(response.content))
     return default_storage.url(saved_name)
 
 

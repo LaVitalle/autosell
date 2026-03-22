@@ -93,6 +93,7 @@ def api_messages(request, conversation_id):
                 'direction': m.direction,
                 'msg_type': m.msg_type,
                 'content': m.content,
+                'media_url': m.media_url or '',
                 'product': _product_dict(m.product) if m.product else None,
                 'category_name': m.category.name if m.category else None,
                 'status': m.status,
