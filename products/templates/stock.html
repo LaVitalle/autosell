@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const dirtyItems = new Map();
     const originalData = new Map();
     const productModes = new Map();
+    const productMinimums = new Map();
 
     const searchInput = document.getElementById('searchInput');
     const resultsInfo = document.getElementById('resultsInfo');
@@ -174,14 +175,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
-    function stockBadge(qty) {
-        if (qty > 5) {
-            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">${qty} unidades</span>`;
+    function stockBadge(qty, minimum) {
+        if (qty === 0) {
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Esgotado</span>`;
         }
-        if (qty > 0) {
+        if (qty <= minimum) {
             return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">${qty} unidades</span>`;
         }
-        return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Esgotado</span>`;
+        return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">${qty} unidades</span>`;
     }
 
     function showLoading() {
@@ -261,6 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!originalData.has(p.id)) {
                 originalData.set(p.id, p.stock_quantity);
             }
+            productMinimums.set(p.id, p.stock_minimum);
         });
 
         renderCards(data.data);
@@ -312,6 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderCard(p) {
         const originalQty = originalData.get(p.id) ?? p.stock_quantity;
+        const minimum = productMinimums.get(p.id) ?? p.stock_minimum;
         const { mode, inputValue, isDirty } = getCardState(p.id, originalQty);
         const safeName = escapeHtml(p.name);
         const safeImg = escapeHtml(p.image_url);
@@ -330,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate" title="${safeName}">${safeName}</h4>
                     <div class="flex items-center gap-2 mt-0.5">
                         <span class="text-xs text-neutral-500 dark:text-neutral-400">R$ ${parseFloat(p.price).toFixed(2)}</span>
-                        ${stockBadge(originalQty)}
+                        ${stockBadge(originalQty, minimum)}
                     </div>
                 </div>
             </div>
@@ -483,6 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 dirtyItems.clear();
                 productModes.clear();
                 originalData.clear();
+                productMinimums.clear();
                 updateSaveBar();
                 loadStock();
             } else {
@@ -502,6 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             dirtyItems.clear();
             productModes.clear();
+            productMinimums.clear();
             updateSaveBar();
             loadStock();
         });

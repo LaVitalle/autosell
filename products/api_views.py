@@ -164,7 +164,7 @@ def api_list_stock(request):
         products = products.filter(name__icontains=search)
 
     if stock_filter == 'low':
-        products = products.filter(stock_quantity__gt=0, stock_quantity__lte=5)
+        products = products.filter(stock_quantity__gt=0, stock_quantity__lte=F('stock_minimum'))
     elif stock_filter == 'out':
         products = products.filter(stock_quantity=0)
 
@@ -181,6 +181,7 @@ def api_list_stock(request):
             'price': str(p.price),
             'image_url': p.image_url or '',
             'stock_quantity': p.stock_quantity,
+            'stock_minimum': p.stock_minimum,
         })
 
     total_pages = (total + per_page - 1) // per_page
@@ -188,7 +189,7 @@ def api_list_stock(request):
     all_stock = Product.objects.filter(stock_active=True)
     stats = {
         'total_limited': all_stock.count(),
-        'low_stock': all_stock.filter(stock_quantity__gt=0, stock_quantity__lte=5).count(),
+        'low_stock': all_stock.filter(stock_quantity__gt=0, stock_quantity__lte=F('stock_minimum')).count(),
         'out_of_stock': all_stock.filter(stock_quantity=0).count(),
         'total_units': all_stock.aggregate(total=Sum('stock_quantity'))['total'] or 0,
     }

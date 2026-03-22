@@ -13,13 +13,14 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ['name', 'description', 'price', 'stock_active', 'stock_quantity']
+        fields = ['name', 'description', 'price', 'stock_active', 'stock_quantity', 'stock_minimum']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['description'].required = False
         self.fields['stock_active'].required = False
         self.fields['stock_quantity'].required = False
+        self.fields['stock_minimum'].required = False
         self.fields['image_file'].required = False
         self.fields['name'].required = True
         self.fields['price'].required = True
@@ -61,6 +62,14 @@ class ProductForm(forms.ModelForm):
         if stock_quantity is None:
             return 0
         return stock_quantity
+
+    def clean_stock_minimum(self):
+        stock_minimum = self.cleaned_data.get('stock_minimum')
+        if stock_minimum is None:
+            return 5
+        if stock_minimum < 0:
+            raise forms.ValidationError("O estoque minimo deve ser maior ou igual a zero")
+        return stock_minimum
 
     def clean(self):
         stock_active = self.cleaned_data.get('stock_active', False)

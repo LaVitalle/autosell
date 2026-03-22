@@ -157,26 +157,48 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label for="id_stock_quantity" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                            Quantidade Inicial
-                        </label>
-                        <input type="number"
-                               name="stock_quantity"
-                               id="id_stock_quantity"
-                               min="0"
-                               value="{{ form.stock_quantity.value|default_if_none:'' }}"
-                               class="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors duration-200 disabled:bg-neutral-100 dark:disabled:bg-neutral-600 disabled:text-neutral-500 dark:disabled:text-neutral-400 disabled:cursor-not-allowed text-sm"
-                               placeholder="Digite a quantidade inicial" />
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="id_stock_quantity" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                Quantidade Inicial
+                            </label>
+                            <input type="number"
+                                   name="stock_quantity"
+                                   id="id_stock_quantity"
+                                   min="0"
+                                   value="{{ form.stock_quantity.value|default_if_none:'' }}"
+                                   class="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors duration-200 disabled:bg-neutral-100 dark:disabled:bg-neutral-600 disabled:text-neutral-500 dark:disabled:text-neutral-400 disabled:cursor-not-allowed text-sm"
+                                   placeholder="Digite a quantidade inicial" />
+                            {% if form.stock_quantity.errors or form.stock_active.errors %}
+                            <p class="text-red-600 dark:text-red-400 text-xs mt-1 flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                {{ form.stock_quantity.errors.0|default:form.stock_active.errors.0 }}
+                            </p>
+                            {% endif %}
+                        </div>
 
-                        {% if form.stock_quantity.errors or form.stock_active.errors %}
-                        <p class="text-red-600 dark:text-red-400 text-xs mt-1 flex items-center">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            {{ form.stock_quantity.errors.0|default:form.stock_active.errors.0 }}
-                        </p>
-                        {% endif %}
+                        <div>
+                            <label for="id_stock_minimum" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                Estoque Minimo
+                            </label>
+                            <input type="number"
+                                   name="stock_minimum"
+                                   id="id_stock_minimum"
+                                   min="0"
+                                   value="{{ form.stock_minimum.value|default_if_none:'5' }}"
+                                   class="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors duration-200 disabled:bg-neutral-100 dark:disabled:bg-neutral-600 disabled:text-neutral-500 dark:disabled:text-neutral-400 disabled:cursor-not-allowed text-sm"
+                                   placeholder="Alerta de estoque baixo" />
+                            {% if form.stock_minimum.errors %}
+                            <p class="text-red-600 dark:text-red-400 text-xs mt-1 flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                {{ form.stock_minimum.errors.0 }}
+                            </p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -217,19 +239,25 @@
     document.addEventListener('DOMContentLoaded', function() {
         const stockCheckbox = document.getElementById('id_stock_active');
         const quantityInput = document.getElementById('id_stock_quantity');
+        const minimumInput = document.getElementById('id_stock_minimum');
         const isEdit = {{ is_edit|yesno:"true,false" }};
         const productId = {{ product.id|default:"0" }};
         const apiUrl = isEdit ? `/products/api/${productId}/edit/` : '/products/api/create/';
         const loadingText = isEdit ? 'Salvando...' : 'Criando...';
 
         function toggleStockControl() {
-            if (stockCheckbox.checked) {
-                quantityInput.disabled = false;
-                quantityInput.classList.remove('bg-neutral-100', 'dark:bg-neutral-600', 'text-neutral-500', 'dark:text-neutral-400', 'cursor-not-allowed');
-            } else {
-                quantityInput.disabled = true;
+            const stockInputs = [quantityInput, minimumInput];
+            stockInputs.forEach(input => {
+                if (stockCheckbox.checked) {
+                    input.disabled = false;
+                    input.classList.remove('bg-neutral-100', 'dark:bg-neutral-600', 'text-neutral-500', 'dark:text-neutral-400', 'cursor-not-allowed');
+                } else {
+                    input.disabled = true;
+                    input.classList.add('bg-neutral-100', 'dark:bg-neutral-600', 'text-neutral-500', 'dark:text-neutral-400', 'cursor-not-allowed');
+                }
+            });
+            if (!stockCheckbox.checked) {
                 quantityInput.value = '0';
-                quantityInput.classList.add('bg-neutral-100', 'dark:bg-neutral-600', 'text-neutral-500', 'dark:text-neutral-400', 'cursor-not-allowed');
             }
         }
 
@@ -252,12 +280,18 @@
             if (!isValid) return;
 
             const wasDisabled = quantityInput.disabled;
-            if (wasDisabled) quantityInput.disabled = false;
+            if (wasDisabled) {
+                quantityInput.disabled = false;
+                minimumInput.disabled = false;
+            }
 
             setButtonLoading(submitBtn, true, loadingText);
             const formData = new FormData(form);
 
-            if (wasDisabled) quantityInput.disabled = true;
+            if (wasDisabled) {
+                quantityInput.disabled = true;
+                minimumInput.disabled = true;
+            }
 
             const { ok, data } = await apiRequest(apiUrl, {
                 method: 'POST',

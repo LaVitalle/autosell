@@ -8,6 +8,7 @@ class Product(models.Model):
     image_url = models.CharField(max_length=500, null=True, blank=True)
     stock_active = models.BooleanField(default=False, null=False, blank=False)
     stock_quantity = models.IntegerField(default=0, null=False, blank=False)
+    stock_minimum = models.IntegerField(default=5, null=False, blank=False)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
