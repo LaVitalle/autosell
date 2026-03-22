@@ -128,6 +128,11 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                 </div>
+                <button id="btnNewConv" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 flex-shrink-0" title="Nova conversa">
+                    <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
             </div>
         </div>
         <div id="convItems" class="overflow-y-auto custom-scroll" style="height: calc(100% - 53px);"></div>
@@ -172,6 +177,11 @@
                     <button id="btnQuickSell" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700" title="Venda Rapida">
                         <svg class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </button>
+                    <button id="btnDeleteConv" class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Apagar conversa">
+                        <svg class="w-5 h-5 text-neutral-400 hover:text-red-500 dark:hover:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
                     </button>
                 </div>
@@ -306,6 +316,27 @@
     </div>
 </div>
 
+<!-- Contact Picker Modal -->
+<div id="contactPickerModal" class="chat-modal-overlay" style="display:none;">
+    <div class="chat-modal" style="max-width: 420px;">
+        <div class="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+            <h3 class="font-semibold text-neutral-900 dark:text-white">Nova Conversa</h3>
+            <button onclick="closeContactPicker()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                <svg class="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="p-3 border-b border-neutral-200 dark:border-neutral-700">
+            <input type="text" id="contactPickerSearch" placeholder="Buscar contato..."
+                class="w-full px-3 py-2 text-sm bg-neutral-100 dark:bg-neutral-700 border-none rounded-lg text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600">
+        </div>
+        <div id="contactPickerList" class="overflow-y-auto custom-scroll" style="max-height: 350px;">
+            <p class="p-4 text-sm text-neutral-400 text-center">Carregando...</p>
+        </div>
+    </div>
+</div>
+
 <script>
 // ===== State =====
 let currentConvId = null;
@@ -338,6 +369,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnAddToCart').addEventListener('click', () => openProductModal('cart'));
     document.getElementById('btnQuickSell').addEventListener('click', () => openProductModal('quicksell'));
     document.getElementById('btnCart').addEventListener('click', openCartModal);
+    document.getElementById('btnNewConv').addEventListener('click', openContactPicker);
+    document.getElementById('btnDeleteConv').addEventListener('click', deleteConversation);
+    document.getElementById('contactPickerSearch').addEventListener('input', debounce(() => loadContactPicker(), 300));
     document.getElementById('productSearchInput').addEventListener('input', debounce(() => filterProducts(), 200));
     document.getElementById('productCategoryFilter').addEventListener('change', () => filterProducts());
 
@@ -947,6 +981,85 @@ function autoResize() {
     const el = document.getElementById('messageInput');
     el.style.height = '36px';
     el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+}
+
+// ===== Contact Picker (Nova Conversa) =====
+async function openContactPicker() {
+    document.getElementById('contactPickerSearch').value = '';
+    document.getElementById('contactPickerModal').style.display = 'flex';
+    await loadContactPicker();
+    document.getElementById('contactPickerSearch').focus();
+}
+
+function closeContactPicker() {
+    document.getElementById('contactPickerModal').style.display = 'none';
+}
+
+async function loadContactPicker() {
+    const search = document.getElementById('contactPickerSearch').value.trim();
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    const res = await apiRequest(`/contacts/api/${params}`);
+    if (!res.ok) return;
+
+    const contacts = res.data.data || [];
+    const container = document.getElementById('contactPickerList');
+
+    if (contacts.length === 0) {
+        container.innerHTML = '<p class="p-4 text-sm text-neutral-400 text-center">Nenhum contato encontrado</p>';
+        return;
+    }
+
+    container.innerHTML = contacts.map(c => `
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-neutral-100 dark:border-neutral-700/50 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors"
+             onclick="startConversation(${c.id}, '${escHtml(c.name)}', '${escHtml(c.phone || '')}')">
+            <div class="w-9 h-9 bg-neutral-200 dark:bg-neutral-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="text-sm font-semibold text-neutral-600 dark:text-neutral-300">${c.name.charAt(0).toUpperCase()}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-neutral-900 dark:text-white truncate">${escHtml(c.name)}</p>
+                <p class="text-xs text-neutral-500 dark:text-neutral-400">${c.phone || 'Sem telefone'}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function startConversation(contactId, name, phone) {
+    const res = await apiRequest(`${BASE}/conversations/start/`, {
+        method: 'POST', body: { contact_id: contactId }
+    });
+    if (!res.ok) {
+        showToast(apiMessage(res.data), 'error');
+        return;
+    }
+    closeContactPicker();
+    await loadConversations();
+    const conv = res.data.data;
+    selectConversation(conv.id, conv.contact_name, conv.contact_phone);
+}
+
+// ===== Delete Conversation =====
+async function deleteConversation() {
+    if (!currentConvId) return;
+    const confirmed = await confirmModal({
+        title: 'Apagar Conversa',
+        message: 'Tem certeza que deseja apagar esta conversa? Todas as mensagens serao perdidas.',
+        confirmText: 'Apagar',
+        danger: true
+    });
+    if (!confirmed) return;
+
+    const res = await apiRequest(`${BASE}/conversations/${currentConvId}/delete/`, { method: 'POST' });
+    if (res.ok) {
+        showToast('Conversa apagada', 'success');
+        currentConvId = null;
+        stopMessagePoll();
+        document.getElementById('chatActive').style.display = 'none';
+        document.getElementById('chatEmpty').style.display = 'flex';
+        if (isMobile) showConvList();
+        loadConversations();
+    } else {
+        showToast(apiMessage(res.data), 'error');
+    }
 }
 
 // ===== Layout Fix =====

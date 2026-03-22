@@ -378,6 +378,59 @@ def api_update_contact(request, conversation_id):
         return api_exception(request, 'livechat.api.update_contact')
 
 
+# ─── Start / Delete Conversation ─────────────────────────────────────────────
+
+@login_required
+@require_http_methods(["POST"])
+def api_start_conversation(request):
+    try:
+        body = json.loads(request.body)
+        contact_id = body.get('contact_id')
+        if not contact_id:
+            return api_error('contact_id obrigatorio')
+
+        try:
+            contact = Contact.objects.get(id=contact_id)
+        except Contact.DoesNotExist:
+            return api_error('Contato nao encontrado', 404)
+
+        # Se ja existe conversa para esse contato, retornar ela
+        try:
+            conversation = Conversation.objects.get(contact=contact)
+        except Conversation.DoesNotExist:
+            # Criar nova conversa — usar phone ou lid como remote_jid
+            remote_jid = contact.phone or contact.lid or str(contact.id)
+            if '@' not in remote_jid:
+                remote_jid = f'{remote_jid}@s.whatsapp.net'
+            conversation = Conversation.objects.create(
+                contact=contact,
+                remote_jid=remote_jid,
+            )
+
+        return api_success(data={
+            'id': conversation.id,
+            'contact_name': contact.name,
+            'contact_phone': contact.phone or '',
+        }, message='Conversa iniciada')
+    except Exception:
+        return api_exception(request, 'livechat.api.start_conversation')
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_delete_conversation(request, conversation_id):
+    try:
+        conversation = Conversation.objects.get(id=conversation_id)
+    except Conversation.DoesNotExist:
+        return api_error('Conversa nao encontrada', 404)
+
+    try:
+        conversation.delete()
+        return api_success(message='Conversa excluida')
+    except Exception:
+        return api_exception(request, 'livechat.api.delete_conversation')
+
+
 # ─── Cart ────────────────────────────────────────────────────────────────────
 
 @login_required
