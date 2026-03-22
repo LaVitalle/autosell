@@ -274,7 +274,8 @@ def _download_media(data, media_type, mimetype):
         file_name = f'chat_media/{media_type}_{uuid.uuid4().hex[:12]}{ext}'
 
         # Fonte 1: Chamar Evolution API para obter base64 (mais confiável)
-        base64_data = get_base64_from_media_message(message_data)
+        # A API espera o objeto completo com key + message
+        base64_data = get_base64_from_media_message(data)
         if base64_data:
             # Remover prefixo data:mimetype;base64, se presente
             if ';base64,' in base64_data:

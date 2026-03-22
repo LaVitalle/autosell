@@ -62,9 +62,15 @@ def send_media_message(number: str, mediatype: str, mimetype: str, caption: str,
         return None
 
 
-def get_base64_from_media_message(message_data: dict, convert_to_mp4: bool = False):
-    """Obtém base64 de uma mensagem de mídia via Evolution API."""
+def get_base64_from_media_message(webhook_data: dict, convert_to_mp4: bool = False):
+    """Obtém base64 de uma mensagem de mídia via Evolution API.
+    Recebe o objeto 'data' completo do webhook (com key + message)."""
     try:
+        # A API espera { "message": { "key": {...}, "message": {...} } }
+        msg_payload = {
+            "key": webhook_data.get("key", {}),
+            "message": webhook_data.get("message", {}),
+        }
         response = post(
             f"{EVOLUTION_URL}/chat/getBase64FromMediaMessage/{EVOLUTION_INSTANCE_ID}",
             headers={
@@ -72,7 +78,7 @@ def get_base64_from_media_message(message_data: dict, convert_to_mp4: bool = Fal
                 "apikey": f"{EVOLUTION_INSTANCE_TOKEN}"
             },
             json={
-                "message": message_data,
+                "message": msg_payload,
                 "convertToMp4": convert_to_mp4
             },
             timeout=30
