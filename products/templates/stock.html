@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let searchTimeout = null;
     const dirtyItems = new Map();
     const originalData = new Map();
+    const productModes = new Map();
 
     const searchInput = document.getElementById('searchInput');
     const resultsInfo = document.getElementById('resultsInfo');
@@ -291,25 +292,30 @@ document.addEventListener('DOMContentLoaded', function() {
         grid.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">${products.map(p => renderCard(p)).join('')}</div>`;
     }
 
+    function getCardState(productId, originalQty) {
+        const mode = productModes.get(productId) || 'add';
+        const inputValue = dirtyItems.has(productId) ? dirtyItems.get(productId) : (mode === 'add' ? 0 : originalQty);
+        const isDirty = mode === 'add' ? inputValue > 0 : inputValue !== originalQty;
+        return { mode, inputValue, isDirty };
+    }
+
+    function buildPreview(mode, inputValue, originalQty) {
+        if (mode === 'add' && inputValue > 0) {
+            const result = originalQty + inputValue;
+            return `<p class="text-xs font-medium text-green-600 dark:text-green-400 mt-2">${originalQty} + ${inputValue} = ${result}</p>`;
+        } else if (mode === 'set' && inputValue !== originalQty) {
+            const color = inputValue === 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400';
+            return `<p class="text-xs font-medium ${color} mt-2">${originalQty} &rarr; ${inputValue}</p>`;
+        }
+        return '';
+    }
+
     function renderCard(p) {
-        const dirty = dirtyItems.get(p.id);
-        const mode = dirty ? dirty.mode : 'add';
-        const inputValue = dirty ? dirty.value : (mode === 'add' ? 0 : p.stock_quantity);
-        const isDirty = dirty !== undefined;
         const originalQty = originalData.get(p.id) ?? p.stock_quantity;
+        const { mode, inputValue, isDirty } = getCardState(p.id, originalQty);
         const safeName = escapeHtml(p.name);
         const safeImg = escapeHtml(p.image_url);
-
-        let preview = '';
-        if (isDirty) {
-            if (mode === 'add' && dirty.value > 0) {
-                const result = originalQty + dirty.value;
-                preview = `<p class="text-xs font-medium text-green-600 dark:text-green-400 mt-2">${originalQty} + ${dirty.value} = ${result}</p>`;
-            } else if (mode === 'set' && dirty.value !== originalQty) {
-                const color = dirty.value === 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400';
-                preview = `<p class="text-xs font-medium ${color} mt-2">${originalQty} &rarr; ${dirty.value}</p>`;
-            }
-        }
+        const preview = buildPreview(mode, inputValue, originalQty);
 
         return `
         <div class="p-3 rounded-lg border ${isDirty ? 'border-l-4 border-yellow-400 dark:border-yellow-500 bg-yellow-50/30 dark:bg-yellow-900/10' : 'border-neutral-200 dark:border-neutral-700'} transition-all duration-200" data-product-id="${p.id}">
@@ -365,54 +371,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.switchMode = function(productId, newMode) {
         const original = originalData.get(productId);
+        productModes.set(productId, newMode);
         const defaultValue = newMode === 'add' ? 0 : original;
-        dirtyItems.set(productId, { mode: newMode, value: defaultValue });
-
-        if (newMode === 'add' && defaultValue === 0) {
-            dirtyItems.delete(productId);
-        }
-        if (newMode === 'set' && defaultValue === original) {
-            dirtyItems.delete(productId);
-        }
-
+        dirtyItems.set(productId, defaultValue);
         refreshCard(productId);
         updateSaveBar();
     };
 
     window.stepValue = function(productId, delta) {
         const original = originalData.get(productId);
-        const dirty = dirtyItems.get(productId);
-        const mode = dirty ? dirty.mode : 'add';
-        let current = dirty ? dirty.value : (mode === 'add' ? 0 : original);
-        let newVal = Math.max(0, current + delta);
-
-        if (mode === 'add' && newVal === 0) {
-            dirtyItems.delete(productId);
-        } else if (mode === 'set' && newVal === original) {
-            dirtyItems.delete(productId);
-        } else {
-            dirtyItems.set(productId, { mode, value: newVal });
-        }
-
+        const mode = productModes.get(productId) || 'add';
+        const current = dirtyItems.has(productId) ? dirtyItems.get(productId) : (mode === 'add' ? 0 : original);
+        const newVal = Math.max(0, current + delta);
+        dirtyItems.set(productId, newVal);
         refreshCard(productId);
         updateSaveBar();
     };
 
     window.onInputChange = function(productId, rawValue) {
-        const original = originalData.get(productId);
-        const dirty = dirtyItems.get(productId);
-        const mode = dirty ? dirty.mode : 'add';
         let val = parseInt(rawValue) || 0;
         if (val < 0) val = 0;
-
-        if (mode === 'add' && val === 0) {
-            dirtyItems.delete(productId);
-        } else if (mode === 'set' && val === original) {
-            dirtyItems.delete(productId);
-        } else {
-            dirtyItems.set(productId, { mode, value: val });
-        }
-
+        dirtyItems.set(productId, val);
         refreshCard(productId);
         updateSaveBar();
     };
@@ -421,10 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cardEl = document.querySelector(`[data-product-id="${productId}"]`);
         if (!cardEl) return;
         const original = originalData.get(productId);
-        const dirty = dirtyItems.get(productId);
-        const mode = dirty ? dirty.mode : 'add';
-        const inputValue = dirty ? dirty.value : (mode === 'add' ? 0 : original);
-        const isDirty = dirty !== undefined;
+        const { mode, inputValue, isDirty } = getCardState(productId, original);
 
         if (isDirty) {
             cardEl.className = 'p-3 rounded-lg border border-l-4 border-yellow-400 dark:border-yellow-500 bg-yellow-50/30 dark:bg-yellow-900/10 transition-all duration-200';
@@ -450,24 +426,22 @@ document.addEventListener('DOMContentLoaded', function() {
             previewEl.className = 'preview-text';
             cardEl.appendChild(previewEl);
         }
+        previewEl.innerHTML = buildPreview(mode, inputValue, original);
+    }
 
-        if (isDirty) {
-            if (mode === 'add' && dirty.value > 0) {
-                const result = original + dirty.value;
-                previewEl.innerHTML = `<p class="text-xs font-medium text-green-600 dark:text-green-400 mt-2">${original} + ${dirty.value} = ${result}</p>`;
-            } else if (mode === 'set' && dirty.value !== original) {
-                const color = dirty.value === 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400';
-                previewEl.innerHTML = `<p class="text-xs font-medium ${color} mt-2">${original} &rarr; ${dirty.value}</p>`;
-            } else {
-                previewEl.innerHTML = '';
-            }
-        } else {
-            previewEl.innerHTML = '';
-        }
+    function getDirtyCount() {
+        let count = 0;
+        dirtyItems.forEach((value, id) => {
+            const original = originalData.get(id);
+            const mode = productModes.get(id) || 'add';
+            const isDirty = mode === 'add' ? value > 0 : value !== original;
+            if (isDirty) count++;
+        });
+        return count;
     }
 
     function updateSaveBar() {
-        const count = dirtyItems.size;
+        const count = getDirtyCount();
         const dirtyCountEl = document.getElementById('dirtyCount');
         if (dirtyCountEl) dirtyCountEl.textContent = count;
         if (saveBar) {
@@ -488,8 +462,13 @@ document.addEventListener('DOMContentLoaded', function() {
             setButtonLoading(saveBtn, true, 'Salvando...');
 
             const updates = [];
-            dirtyItems.forEach((val, id) => {
-                updates.push({ id, mode: val.mode, value: val.value });
+            dirtyItems.forEach((value, id) => {
+                const original = originalData.get(id);
+                const mode = productModes.get(id) || 'add';
+                const isDirty = mode === 'add' ? value > 0 : value !== original;
+                if (isDirty) {
+                    updates.push({ id, mode, value });
+                }
             });
 
             const { ok, data } = await apiRequest('/products/api/stock/bulk-update/', {
@@ -502,6 +481,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (ok) {
                 showToast(apiMessage(data), 'success');
                 dirtyItems.clear();
+                productModes.clear();
                 originalData.clear();
                 updateSaveBar();
                 loadStock();
@@ -521,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!confirmed) return;
 
             dirtyItems.clear();
+            productModes.clear();
             updateSaveBar();
             loadStock();
         });
