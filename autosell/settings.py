@@ -128,24 +128,30 @@ else:
 
 
 # Media files (MinIO S3-compatible storage)
-MINIO_SERVER_URL = config('MINIO_SERVER_URL')
-MINIO_BUCKET_NAME = config('BUCKET_NAME')
+MINIO_SERVER_URL = config('MINIO_SERVER_URL', default='')
+MINIO_BUCKET_NAME = config('BUCKET_NAME', default='autosell')
 
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
-        "OPTIONS": {
-            "access_key": config("MINIO_ROOT_USER"),
-            "secret_key": config("MINIO_ROOT_PASSWORD"),
-            "bucket_name": MINIO_BUCKET_NAME,
-            "endpoint_url": MINIO_SERVER_URL,
-            "querystring_auth": False,
-            "file_overwrite": False,
+if MINIO_SERVER_URL:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "access_key": config("MINIO_ROOT_USER"),
+                "secret_key": config("MINIO_ROOT_PASSWORD"),
+                "bucket_name": MINIO_BUCKET_NAME,
+                "endpoint_url": MINIO_SERVER_URL,
+                "querystring_auth": False,
+                "file_overwrite": False,
+            },
         },
-    },
-}
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = f'{MINIO_SERVER_URL}/{MINIO_BUCKET_NAME}/'
+else:
+    MEDIA_URL = '/media/'
 
-MEDIA_URL = f'{MINIO_SERVER_URL}/{MINIO_BUCKET_NAME}/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Site URL (for absolute URLs in external APIs)
