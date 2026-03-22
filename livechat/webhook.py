@@ -254,9 +254,10 @@ def _process_single_message(data):
 
 def _download_media(data, media_type, mimetype):
     """Baixa mídia do payload do webhook e armazena no MinIO.
-    Tenta: 1) base64 do payload  2) mediaUrl  3) jpegThumbnail (imagens)"""
+    Tenta: 1) getBase64FromMediaMessage API  2) base64 do payload  3) mediaUrl  4) jpegThumbnail"""
     import uuid
     from utils.storage import upload_media_from_base64, upload_media_from_url
+    from utils.evoapi import get_base64_from_media_message
 
     try:
         message_data = data.get('message', {}) or {}
@@ -272,21 +273,33 @@ def _download_media(data, media_type, mimetype):
         ext = ext_map.get(mimetype.split(';')[0].strip(), '.jpg' if media_type == 'image' else '.ogg')
         file_name = f'chat_media/{media_type}_{uuid.uuid4().hex[:12]}{ext}'
 
-        # Fonte 1: base64 no nível raiz do payload
-        base64_data = data.get('base64')
+        # Fonte 1: Chamar Evolution API para obter base64 (mais confiável)
+        base64_data = get_base64_from_media_message(message_data)
         if base64_data:
+            # Remover prefixo data:mimetype;base64, se presente
+            if ';base64,' in base64_data:
+                base64_data = base64_data.split(';base64,', 1)[1]
             log_system_event('INFO', 'livechat.webhook.download_media',
-                f'Usando base64 do payload para {media_type}')
+                f'Usando getBase64FromMediaMessage para {media_type}')
             return upload_media_from_base64(file_name, base64_data)
 
-        # Fonte 2: mediaUrl (quando S3 configurado na Evolution)
+        # Fonte 2: base64 no nível raiz do payload (webhookBase64)
+        base64_payload = data.get('base64')
+        if base64_payload:
+            if ';base64,' in base64_payload:
+                base64_payload = base64_payload.split(';base64,', 1)[1]
+            log_system_event('INFO', 'livechat.webhook.download_media',
+                f'Usando base64 do payload para {media_type}')
+            return upload_media_from_base64(file_name, base64_payload)
+
+        # Fonte 3: mediaUrl (quando S3 configurado na Evolution)
         media_url = data.get('mediaUrl')
         if media_url:
             log_system_event('INFO', 'livechat.webhook.download_media',
                 f'Usando mediaUrl para {media_type}: {media_url[:100]}')
             return upload_media_from_url(file_name, media_url)
 
-        # Fonte 3: jpegThumbnail (fallback baixa qualidade, apenas imagens)
+        # Fonte 4: jpegThumbnail (fallback baixa qualidade, apenas imagens)
         if media_type == 'image':
             thumbnail = message_data.get(media_key, {}).get('jpegThumbnail')
             if thumbnail:

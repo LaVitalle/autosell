@@ -62,6 +62,33 @@ def send_media_message(number: str, mediatype: str, mimetype: str, caption: str,
         return None
 
 
+def get_base64_from_media_message(message_data: dict, convert_to_mp4: bool = False):
+    """Obtém base64 de uma mensagem de mídia via Evolution API."""
+    try:
+        response = post(
+            f"{EVOLUTION_URL}/chat/getBase64FromMediaMessage/{EVOLUTION_INSTANCE_ID}",
+            headers={
+                "Content-Type": "application/json",
+                "apikey": f"{EVOLUTION_INSTANCE_TOKEN}"
+            },
+            json={
+                "message": message_data,
+                "convertToMp4": convert_to_mp4
+            },
+            timeout=30
+        )
+        if response.status_code >= 400:
+            log_system_event('ERROR', 'utils.evoapi.get_base64_from_media',
+                f'API retornou status {response.status_code}: {response.text[:500]}')
+            return None
+        data = response.json()
+        return data.get('base64', None)
+    except Exception as e:
+        log_system_event('ERROR', 'utils.evoapi.get_base64_from_media',
+            f'Erro ao obter base64: {e}')
+        return None
+
+
 def resolve_contact_number(contact):
     """Retorna o identificador para envio: prioriza phone (JID), fallback lid (LID)."""
     return contact.phone or contact.lid or ''
