@@ -142,6 +142,48 @@
         border-radius: 8px;
     }
 
+    /* Custom audio player */
+    .audio-player {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 220px;
+        padding: 2px 0;
+    }
+    .audio-play-btn {
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; transition: opacity 0.15s; cursor: pointer; border: none;
+    }
+    .bubble-in .audio-play-btn { background: #171717; color: white; }
+    .dark .bubble-in .audio-play-btn { background: #fafafa; color: #171717; }
+    .bubble-out .audio-play-btn { background: rgba(255,255,255,0.2); color: white; }
+    .audio-play-btn:hover { opacity: 0.8; }
+    .audio-track {
+        flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;
+    }
+    .audio-progress-wrap {
+        width: 100%; height: 4px; border-radius: 2px; cursor: pointer; position: relative;
+    }
+    .bubble-in .audio-progress-wrap { background: #d4d4d4; }
+    .dark .bubble-in .audio-progress-wrap { background: #525252; }
+    .bubble-out .audio-progress-wrap { background: rgba(255,255,255,0.2); }
+    .audio-progress-bar {
+        height: 100%; border-radius: 2px; width: 0%; transition: width 0.1s linear; position: relative;
+    }
+    .bubble-in .audio-progress-bar { background: #171717; }
+    .dark .bubble-in .audio-progress-bar { background: #fafafa; }
+    .bubble-out .audio-progress-bar { background: white; }
+    .audio-progress-bar::after {
+        content: ''; position: absolute; right: -4px; top: -4px;
+        width: 12px; height: 12px; border-radius: 50%;
+        background: inherit; opacity: 0; transition: opacity 0.15s;
+    }
+    .audio-progress-wrap:hover .audio-progress-bar::after { opacity: 1; }
+    .audio-time {
+        font-size: 11px; opacity: 0.55; font-variant-numeric: tabular-nums;
+    }
+
     /* Action menu */
     .action-menu-item {
         display: flex;
@@ -376,6 +418,19 @@
     </div>
 </div>
 
+<!-- Image Lightbox -->
+<div id="imageLightbox" style="display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.92); cursor:zoom-out;"
+    onclick="closeLightbox()">
+    <button onclick="closeLightbox()" class="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
+    <div class="flex items-center justify-center w-full h-full p-4">
+        <img id="lightboxImg" src="" alt="" class="max-w-full max-h-full object-contain rounded-lg" onclick="event.stopPropagation()">
+    </div>
+</div>
+
 <!-- Contact Picker Modal -->
 <div id="contactPickerModal" class="chat-modal-overlay" style="display:none;">
     <div class="chat-modal" style="max-width: 420px;">
@@ -590,18 +645,31 @@ function renderMessage(m) {
             <p class="text-sm whitespace-pre-wrap break-words">${formatWhatsApp(escHtml(m.content))}</p>
         </div>`;
     } else if (m.msg_type === 'image' && m.media_url) {
-        const caption = m.content ? `<p class="text-sm whitespace-pre-wrap break-words mt-1.5">${formatWhatsApp(escHtml(m.content))}</p>` : '';
+        const caption = m.content ? `<p class="text-sm whitespace-pre-wrap break-words mt-1.5 px-1">${formatWhatsApp(escHtml(m.content))}</p>` : '';
         content = `<div>
             <img src="${escHtml(m.media_url)}" alt="Imagem"
                 class="rounded-lg max-w-[280px] max-h-[300px] cursor-pointer object-cover"
-                onclick="window.open(this.src,'_blank')" loading="lazy">
+                onclick="openLightbox(this.src)" loading="lazy">
             ${caption}
         </div>`;
     } else if (m.msg_type === 'audio' && m.media_url) {
-        content = `<div>
-            <audio controls preload="metadata" class="max-w-[250px] min-w-[200px]">
-                <source src="${escHtml(m.media_url)}">
-            </audio>
+        const audioId = 'audio_' + m.id;
+        content = `<div class="audio-player">
+            <button class="audio-play-btn" onclick="toggleAudio('${audioId}')">
+                <svg id="${audioId}_icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+            </button>
+            <div class="audio-track">
+                <div class="audio-progress-wrap" onclick="seekAudio(event,'${audioId}')">
+                    <div id="${audioId}_bar" class="audio-progress-bar"></div>
+                </div>
+                <span id="${audioId}_time" class="audio-time">0:00</span>
+            </div>
+            <audio id="${audioId}" preload="metadata" src="${escHtml(m.media_url)}"
+                ontimeupdate="updateAudioProgress('${audioId}')"
+                onloadedmetadata="updateAudioDuration('${audioId}')"
+                onended="resetAudio('${audioId}')"></audio>
         </div>`;
     } else if ((m.msg_type === 'image' || m.msg_type === 'audio') && !m.media_url) {
         const label = m.msg_type === 'image' ? '\ud83d\udcf7 Imagem' : '\ud83c\udfb5 Audio';
@@ -1076,6 +1144,79 @@ function formatWhatsApp(text) {
     text = text.replace(/(?<!\w)_((?!\s)(?:(?!_).)+(?<!\s))_(?!\w)/g, '<em>$1</em>');
     text = text.replace(/(?<!\w)~((?!\s)(?:(?!~).)+(?<!\s))~(?!\w)/g, '<del>$1</del>');
     return text;
+}
+
+// ===== Image Lightbox =====
+function openLightbox(src) {
+    const lb = document.getElementById('imageLightbox');
+    document.getElementById('lightboxImg').src = src;
+    lb.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+    const lb = document.getElementById('imageLightbox');
+    lb.style.display = 'none';
+    document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ===== Audio Player =====
+function fmtDuration(s) {
+    if (!s || !isFinite(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + String(sec).padStart(2, '0');
+}
+function toggleAudio(id) {
+    const audio = document.getElementById(id);
+    if (!audio) return;
+    // Pausar qualquer outro áudio tocando
+    document.querySelectorAll('.audio-player audio').forEach(a => {
+        if (a.id !== id && !a.paused) {
+            a.pause();
+            const otherId = a.id;
+            const otherIcon = document.getElementById(otherId + '_icon');
+            if (otherIcon) otherIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+        }
+    });
+    const icon = document.getElementById(id + '_icon');
+    if (audio.paused) {
+        audio.play();
+        if (icon) icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+    } else {
+        audio.pause();
+        if (icon) icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    }
+}
+function updateAudioProgress(id) {
+    const audio = document.getElementById(id);
+    if (!audio || !audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    const bar = document.getElementById(id + '_bar');
+    if (bar) bar.style.width = pct + '%';
+    const timeEl = document.getElementById(id + '_time');
+    if (timeEl) timeEl.textContent = fmtDuration(audio.currentTime) + ' / ' + fmtDuration(audio.duration);
+}
+function updateAudioDuration(id) {
+    const audio = document.getElementById(id);
+    const timeEl = document.getElementById(id + '_time');
+    if (audio && timeEl) timeEl.textContent = '0:00 / ' + fmtDuration(audio.duration);
+}
+function seekAudio(event, id) {
+    const audio = document.getElementById(id);
+    if (!audio || !audio.duration) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pct = (event.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
+}
+function resetAudio(id) {
+    const icon = document.getElementById(id + '_icon');
+    if (icon) icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    const bar = document.getElementById(id + '_bar');
+    if (bar) bar.style.width = '0%';
+    const audio = document.getElementById(id);
+    const timeEl = document.getElementById(id + '_time');
+    if (audio && timeEl) timeEl.textContent = '0:00 / ' + fmtDuration(audio.duration);
 }
 
 function formatTime(iso) {
