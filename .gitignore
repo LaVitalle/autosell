@@ -3,3 +3,6 @@
 *.env
 .claude/
 media/
+__pycache__/
+*.pyc
+docs/TASKS.md
