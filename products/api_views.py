@@ -258,3 +258,31 @@ def api_bulk_update_stock(request):
         return api_error(message='JSON invalido', status_code=400)
     except Exception:
         return api_exception(request, 'products.api_views.api_bulk_update_stock', 'Erro ao atualizar estoque')
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_list_low_stock(request):
+    try:
+        products = Product.objects.filter(
+            stock_active=True,
+            stock_quantity__lte=F('stock_minimum'),
+        ).order_by('stock_quantity', 'name')
+
+        data = []
+        for p in products:
+            data.append({
+                'id': p.id,
+                'name': p.name,
+                'price': str(p.price),
+                'image_url': p.image_url or '',
+                'stock_quantity': p.stock_quantity,
+                'stock_minimum': p.stock_minimum,
+            })
+
+        return api_success(
+            data=data,
+            message='Produtos com estoque baixo',
+        )
+    except Exception:
+        return api_exception(request, 'products.api_views.api_list_low_stock', 'Erro ao listar produtos com estoque baixo')

@@ -12,6 +12,7 @@ urlpatterns = [
     # API endpoints
     path('api/', api_views.api_list_products, name='api_list_products'),
     path('api/stock/', api_views.api_list_stock, name='api_list_stock'),
+    path('api/stock/low/', api_views.api_list_low_stock, name='api_list_low_stock'),
     path('api/stock/bulk-update/', api_views.api_bulk_update_stock, name='api_bulk_update_stock'),
     path('api/create/', api_views.api_create_product, name='api_create_product'),
     path('api/<int:product_id>/edit/', api_views.api_edit_product, name='api_edit_product'),
