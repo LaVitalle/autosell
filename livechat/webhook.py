@@ -71,6 +71,23 @@ def _handle_messages_upsert(payload):
             f'{type(e).__name__}: {e} | Payload: {json.dumps(payload)[:800]}')
 
 
+def _phone_variants(phone):
+    """Variantes equivalentes de um telefone brasileiro para tratar o nono dígito.
+
+    Ex.: 5545999037399 (13 dígitos, formato novo) e 554599037399 (12 dígitos sem
+    o 9 móvel) representam o mesmo contato — Evolution às vezes devolve sem o 9.
+    """
+    if not phone or not phone.startswith('55') or len(phone) not in (12, 13):
+        return [phone] if phone else []
+
+    body = phone[4:]
+    if len(phone) == 13 and body.startswith('9'):
+        return [phone, phone[:4] + body[1:]]
+    if len(phone) == 12 and body.startswith('9'):
+        return [phone, phone[:4] + '9' + body]
+    return [phone]
+
+
 def _process_single_message(data):
     key = data.get('key', {})
     remote_jid = key.get('remoteJid', '')
@@ -162,9 +179,10 @@ def _process_single_message(data):
         elif '@s.whatsapp.net' in remote_jid:
             phone = lid
 
-    # Cross-reference lookup: buscar por lid OU phone
+    # Cross-reference lookup: buscar por lid OU phone (tolerante ao 9° dígito)
+    phone_options = _phone_variants(phone)
     contact_by_lid = Contact.objects.filter(lid=lid).first()
-    contact_by_phone = Contact.objects.filter(phone=phone).first() if phone else None
+    contact_by_phone = Contact.objects.filter(phone__in=phone_options).first() if phone_options else None
 
     if contact_by_lid and contact_by_phone and contact_by_lid.id != contact_by_phone.id:
         # Conflito: lid e phone apontam para contatos diferentes — merge
@@ -187,7 +205,7 @@ def _process_single_message(data):
             )
         except IntegrityError:
             contact = Contact.objects.filter(
-                Q(lid=lid) | (Q(phone=phone) if phone else Q())
+                Q(lid=lid) | (Q(phone__in=phone_options) if phone_options else Q())
             ).first()
             if not contact:
                 raise
