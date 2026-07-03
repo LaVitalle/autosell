@@ -7,13 +7,13 @@
 
 ## 2. Repositório e fundação do backend Java (`backend-platform`)
 
-- [ ] 2.1 Criar o repositório `autosell-backend` com Spring Boot 3.x, Java 21 e build Maven
-- [ ] 2.2 Estruturar pacotes por domínio (`platform`, `catalog`, `contact`, `whatsapp`, `livechat`, `sales`) espelhando os apps Django
-- [ ] 2.3 Configurar leitura de variáveis de ambiente equivalentes ao `.env` (DB, Evolution, MinIO, SITE_URL, SECRET) com falha clara se faltarem obrigatórias
-- [ ] 2.4 Configurar JPA/Hibernate com `ddl-auto=validate` apontando para o banco de staging
-- [ ] 2.5 Implementar o envelope de resposta JSON padrão (`data`/`status`/`page`/`stats`) e helpers de paginação (máx. 100 por página)
-- [ ] 2.6 Implementar tratamento centralizado de exceções + logging estruturado equivalente a `SystemLog` (nível, origem, mensagem, trace, método, path, usuário)
-- [ ] 2.7 Configurar CORS restrito ao domínio do frontend com suporte a credenciais
+- [x] 2.1 Criar o repositório `autosell-backend` com Spring Boot 3.x, Java 21 e build Maven <!-- gerado via Spring Initializr; Boot 4.1 (default atual), nao 3.x -->
+- [x] 2.2 Estruturar pacotes por domínio (`platform`, `catalog`, `contact`, `whatsapp`, `livechat`, `sales`) espelhando os apps Django
+- [x] 2.3 Configurar leitura de variáveis de ambiente equivalentes ao `.env` (DB, Evolution, MinIO, SITE_URL, SECRET) com falha clara se faltarem obrigatórias
+- [x] 2.4 Configurar JPA/Hibernate com `ddl-auto=validate` apontando para o banco de staging
+- [x] 2.5 Implementar o envelope de resposta JSON padrão (`data`/`status`/`page`/`stats`) e helpers de paginação (máx. 100 por página)
+- [x] 2.6 Implementar tratamento centralizado de exceções + logging estruturado equivalente a `SystemLog` (nível, origem, mensagem, trace, método, path, usuário)
+- [x] 2.7 Configurar CORS restrito ao domínio do frontend com suporte a credenciais
 
 ## 3. Autenticação (`backend-platform`)
 
@@ -79,10 +79,10 @@
 
 ## 11. Repositório e fundação do frontend React (`web-client`)
 
-- [ ] 11.1 Criar o repositório `autosell-frontend` com Vite + React + TypeScript
-- [ ] 11.2 Configurar Tailwind com `darkMode: 'class'` reproduzindo o design system e prevenção de FOUC
-- [ ] 11.3 Configurar React Router e cliente de API (fetch com `withCredentials`) + TanStack Query
-- [ ] 11.4 Implementar funções/utilitários de UX globais (animateNumber, loadingPlaceholder, fadeIn, toast, confirmModal, botão loading)
+- [x] 11.1 Criar o repositório `autosell-frontend` com Vite + React + TypeScript
+- [x] 11.2 Configurar Tailwind com `darkMode: 'class'` reproduzindo o design system e prevenção de FOUC
+- [x] 11.3 Configurar React Router e cliente de API (fetch com `withCredentials`) + TanStack Query
+- [x] 11.4 Implementar funções/utilitários de UX globais (animateNumber, loadingPlaceholder, fadeIn, toast, confirmModal, botão loading)
 
 ## 12. Telas do frontend (`web-client`)
 
