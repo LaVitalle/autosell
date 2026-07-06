@@ -6,3 +6,6 @@ media/
 __pycache__/
 *.pyc
 docs/TASKS.md
+Produtos.xlsx
+produtos_normalizados.csv
+scripts/
